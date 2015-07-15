@@ -21,5 +21,6 @@ urlpatterns = [
     url(r'^grep/', include('alco.grep.urls')),
     url(r'^collector/', include('alco.collector.urls')),
     url(r'^api/grep/', include('alco.grep.api.urls')),
+    url(r'^api/collector/', include('alco.collector.api.urls')),
 
 ]

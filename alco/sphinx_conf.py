@@ -3,8 +3,10 @@
 
 import sys
 import os
+import json
 
 settings_module = os.environ.get('DJANGO_SETTINGS_MODULE', 'settings')
+settings_module = settings_module.replace('.', '/')
 settings_file = settings_module + '.py'
 settings_path = os.path.join(os.getcwd(), settings_file)
 
@@ -19,5 +21,18 @@ else:
     execfile(settings_path)
 
 # noinspection PyUnresolvedReferences
-r = urlopen(SPHINX_CONFIG_URL)
-print(r.read().decode('utf-8'))
+r = urlopen(os.path.join(ALCO_HOST, 'collector/sphinx.conf'))
+config = r.read().decode('utf-8')
+
+# noinspection PyUnresolvedReferences
+r = urlopen(os.path.join(ALCO_HOST, 'api/collector/indices/?format=json'))
+indices = json.loads(r.read().decode('utf-8'))
+for idx in indices:
+    name = idx['name']
+    for dt in idx['index_dates']:
+        path = os.path.join("/data/sphinx/", name, dt)
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+print(config)
+

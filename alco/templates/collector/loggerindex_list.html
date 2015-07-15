@@ -1,14 +1,13 @@
-{% load collector_tags %}
 #############################################################################
 ## local indexes
 #############################################################################
 
 {% for log in object_list %}
 ### {{ log.name }} ###
-    {% for dt in log|index_dates %}
-index {{ log.name }}_{{ dt|date:"Ymd" }} {
+    {% for dt in log.index_dates %}
+index {{ log.name }}_{{ dt }} {
 	type			= rt
-	path			= /data/sphinx/{{ log.name }}/{{ dt|date:"Ymd" }}/
+	path			= /data/sphinx/{{ log.name }}/{{ dt }}/
 	rt_field		= logline
 	rt_field		= js
 	rt_attr_string	= logline
@@ -21,8 +20,8 @@ index {{ log.name }}_{{ dt|date:"Ymd" }} {
 index {{ log.name }}
 {
 	type			= distributed
-    {% for dt in log|index_dates %}
-	local			= {{ log.name }}_{{ dt|date:"Ymd" }}{% endfor %}
+    {% for dt in log.index_dates %}
+	local			= {{ log.name }}_{{ dt }}{% endfor %}
 }
 
 ### end {{ log.name }} ###

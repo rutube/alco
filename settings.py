@@ -86,7 +86,7 @@ REDIS_HOST = '127.0.0.1'
 REDIS_DB = 0
 
 # url for fetching sphinx.conf dynamically
-SPHINX_CONFIG_URL = "http://localhost:8000/collector/sphinx.conf"
+ALCO_HOST = "http://192.168.70.104:8000/"
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
