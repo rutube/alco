@@ -1,0 +1,70 @@
+{% load collector_tags %}
+#############################################################################
+## local indexes
+#############################################################################
+
+{% for log in object_list %}
+### {{ log.name }} ###
+    {% for dt in log|index_dates %}
+index {{ log.name }}_{{ dt|date:"Ymd" }} {
+	type			= rt
+	path			= /data/sphinx/{{ log.name }}/{{ dt|date:"Ymd" }}/
+	rt_field		= logline
+	rt_field		= js
+	rt_attr_string	= logline
+	rt_attr_float	= ts
+	rt_attr_bigint	= seq
+	rt_attr_json	= js
+}
+    {% endfor %}
+
+index {{ log.name }}
+{
+	type			= distributed
+    {% for dt in log|index_dates %}
+	local			= {{ log.name }}_{{ dt|date:"Ymd" }}{% endfor %}
+}
+
+### end {{ log.name }} ###
+{% endfor %}
+
+#############################################################################
+## indexer settings
+#############################################################################
+
+indexer
+{
+	mem_limit		= 128M
+}
+
+#############################################################################
+## searchd settings
+#############################################################################
+
+searchd
+{
+	listen			= 9306:mysql41
+	log			= /var/log/sphinx/searchd.log
+	query_log		= /var/log/sphinx/query.log
+	read_timeout		= 5
+	client_timeout		= 300
+	max_children		= 30
+	persistent_connections_limit	= 30
+	pid_file		= /var/run/sphinx/searchd.pid
+	seamless_rotate		= 1
+	preopen_indexes		= 1
+	unlink_old		= 1
+	workers			= threads # for RT to work
+    binlog_path		= # disable logging
+}
+
+#############################################################################
+## common settings
+#############################################################################
+
+common
+{
+    plugin_dir = /data/sphinx/lib/
+}
+
+# --eof--
