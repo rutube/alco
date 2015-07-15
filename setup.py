@@ -3,9 +3,14 @@ from distutils.core import setup
 setup(
     name='alco',
     version='0.0.2',
-    packages=['alco', 'alco.grep', 'alco.grep.api', 'alco.collector',
-              'alco.collector.management', 'alco.collector.management.commands',
-              'alco.collector.templatetags'],
+    packages=['alco',
+              'alco.grep',
+              'alco.grep.api',
+              'alco.collector',
+              'alco.collector.api',
+              'alco.collector.management',
+              'alco.collector.management.commands'
+    ],
     url='https://github.com/tumb1er/alco',
     install_requires=[
         'Django>=1.8',
