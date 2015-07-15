@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='alco',
-    version='0.0.2',
+    version='0.0.3',
     packages=['alco',
               'alco.grep',
               'alco.grep.api',
@@ -12,6 +12,7 @@ setup(
               'alco.collector.management.commands'
     ],
     url='https://github.com/tumb1er/alco',
+    include_package_data=True,
     install_requires=[
         'Django>=1.8',
         'djangorestframework>=3.1',

@@ -48,7 +48,6 @@ class Collector(object):
             self.amqp.close()
             sys.exit(0)
 
-
     def process_message(self, msg):
         js = msg.body.decode("utf-8")
         data = json.loads(js)
@@ -59,9 +58,10 @@ class Collector(object):
         dt = dateutil.parser.parse(ts)
         result = {
             'ts': time.mktime(dt.timetuple()),
+            'ms': dt.microsecond,
+            'seq': seq,
             'message': msg,
             'js': json.dumps(data),
-            'seq': seq
         }
         self.messages.append(result)
         d = dt.date()
@@ -92,12 +92,13 @@ class Collector(object):
 
         suffix = self.current_date.strftime("%Y%m%d")
         name = "%s_%s" % (self.index.name, suffix)
-        query = "REPLACE INTO %s (id, ts, seq, js, logline) VALUES " % name
+        query = "REPLACE INTO %s (id, ts, ms, seq, js, logline) VALUES " % name
         rows = []
         args = []
         for pk, data in zip(range(min_pk, max_pk), messages):
             rows.append("(%s, %s, %s, %s, %s)")
-            args.extend((pk, data['ts'], data['seq'], data['js'], data['message']))
+            args.extend((pk, data['ts'], data['ms'], data['seq'], data['js'],
+                         data['message']))
         query += ','.join(rows)
 
         for _ in range(3):
