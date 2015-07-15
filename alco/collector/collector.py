@@ -89,8 +89,8 @@ class Collector(object):
         min_pk = max_pk - len(messages)
 
         suffix = self.current_date.strftime("%Y%m%d")
-
-        query = "REPLACE INTO logger_0 (id, ts, js, logline) VALUES "
+        name = "%s_%s" % (self.index.name, suffix)
+        query = "REPLACE INTO %s (id, ts, js, logline) VALUES " % name
         rows = []
         args = []
         for pk, data in zip(range(min_pk, max_pk), messages):
