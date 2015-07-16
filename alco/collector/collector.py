@@ -63,6 +63,7 @@ class Collector(object):
             'seq': seq,
             'message': msg,
             'js': json.dumps(data),
+            'data': data
         }
         self.messages.append(result)
         d = dt.date()
@@ -100,7 +101,7 @@ class Collector(object):
         rows = []
         args = []
         for pk, data in zip(range(min_pk, max_pk), messages):
-            host = data['js'].get('host')
+            host = data['data'].get('host')
             if host:
                 hosts.add(hosts)
             rows.append("(%s, %s, %s, %s, %s, %s)")
