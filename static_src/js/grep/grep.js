@@ -35,6 +35,12 @@
             return resp.results;
         },
 
+	    reset: function(models, options) {
+		    Backbone.Collection.prototype.reset.apply(this, [models, options]);
+		    this.has_next = true;
+		    this.page = 1;
+	    },
+
         loadMore: function() {
             if (this.loading || !this.has_next) {
                 return false;
