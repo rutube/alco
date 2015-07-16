@@ -103,7 +103,7 @@ class Collector(object):
         for pk, data in zip(range(min_pk, max_pk), messages):
             host = data['data'].get('host')
             if host:
-                hosts.add(hosts)
+                hosts.add(host)
             rows.append("(%s, %s, %s, %s, %s, %s)")
             args.extend((pk, data['ts'], data['ms'], data['seq'], data['js'],
                          data['message']))
