@@ -1,25 +1,23 @@
 {% extends 'base.html' %}
 {% load staticfiles %}
 {% block extrahead %}
-<script src="{% static 'alco/js/grep.js'%}">
-
-</script>
 {% endblock %}
 {% block content %}
     <div class="panel panel-default" id="grep-view">
         <div class="panel-heading">
-            <form>
+            <form id="search-form">
                 <div class="input-group">
                     <input type="text" class="form-control" name="search"
+                           id="search-text"
                            placeholder="Search for...">
                   <span class="input-group-btn">
                     <input class="btn btn-default" type="submit" value="grep"
-                             id="search">
+                             id="search-btn">
                   </span>
                 </div>
             </form>
         </div>
-        <div class="panel-body" id="log-container">
+        <pre class="panel-body" id="log-container">
             <div class="progress">
                 <div class="progress-bar progress-bar-striped active"
                      role="progressbar"
@@ -28,6 +26,13 @@
                     <span class="sr-only">Loading</span>
                 </div>
             </div>
-        </div>
+        </pre>
     </div>
+    <div class="hidden">
+        <script id="log-template" type="text/template"><span class="ts"><%= time %></span> <span class="host"><%= shortHost %></span> <%= logline %></script>
+    </div>
+{% endblock %}
+
+{% block footer %}
+<script src="{% static 'js/grep/grep.js'%}"></script>
 {% endblock %}

@@ -96,7 +96,7 @@ class Collector(object):
         rows = []
         args = []
         for pk, data in zip(range(min_pk, max_pk), messages):
-            rows.append("(%s, %s, %s, %s, %s)")
+            rows.append("(%s, %s, %s, %s, %s, %s)")
             args.extend((pk, data['ts'], data['ms'], data['seq'], data['js'],
                          data['message']))
         query += ','.join(rows)

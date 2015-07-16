@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name='alco',
@@ -13,6 +13,9 @@ setup(
     ],
     url='https://github.com/tumb1er/alco',
     include_package_data=True,
+    package_data={
+        'alco': ['alco/templates/'],
+    },
     install_requires=[
         'Django>=1.8',
         'djangorestframework>=3.1',
