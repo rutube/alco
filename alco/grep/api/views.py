@@ -11,7 +11,7 @@ from alco.grep.models import Log
 
 
 class LogPaginator(PageNumberPagination):
-    page_size = 10
+    page_size = 20
 
 
 class GrepView(ListAPIView):
@@ -26,3 +26,4 @@ class GrepView(ListAPIView):
     serializer_class = LogSerializer
 
     pagination_class = LogPaginator
+

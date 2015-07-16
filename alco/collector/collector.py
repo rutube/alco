@@ -11,6 +11,7 @@ import redis
 from amqp import Connection
 from django.conf import settings
 import sys
+from alco.collector import keys
 
 
 class Collector(object):
@@ -87,8 +88,11 @@ class Collector(object):
         messages, self.messages = self.messages, []
         if not messages:
             return
-        max_pk = self.redis.incrby("logstash_id", len(messages))
+        key = keys.KEY_SEQUENCE.format(index=self.index.name)
+        max_pk = self.redis.incrby(key, len(messages))
         min_pk = max_pk - len(messages)
+
+        hosts = set()
 
         suffix = self.current_date.strftime("%Y%m%d")
         name = "%s_%s" % (self.index.name, suffix)
@@ -96,10 +100,15 @@ class Collector(object):
         rows = []
         args = []
         for pk, data in zip(range(min_pk, max_pk), messages):
+            host = data['js'].get('host')
+            if host:
+                hosts.add(hosts)
             rows.append("(%s, %s, %s, %s, %s, %s)")
             args.extend((pk, data['ts'], data['ms'], data['seq'], data['js'],
                          data['message']))
         query += ','.join(rows)
+        key = keys.KEY_HOSTS.format(index=self.index.name)
+        self.redis.sadd(key, hosts)
 
         for _ in range(3):
             try:
