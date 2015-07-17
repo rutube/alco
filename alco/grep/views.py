@@ -15,9 +15,6 @@ class GrepView(DetailView):
     slug_field = 'name'
     slug_url_kwarg = 'name'
 
-
     def get_context_data(self, **kwargs):
         cd = super(GrepView, self).get_context_data(**kwargs)
-        key = keys.KEY_HOSTS.format(index=self.object.name)
-        cd['hosts'] = sorted(client.smembers(key))
         return cd

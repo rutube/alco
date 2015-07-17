@@ -9,5 +9,5 @@ from django.conf.urls import url
 from alco.grep.api.views import GrepView
 
 urlpatterns = [
-    url(r'^grep/', GrepView.as_view()),
+    url(r'^(?P<logger>[\w]+)/', GrepView.as_view()),
 ]

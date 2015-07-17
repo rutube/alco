@@ -26,6 +26,10 @@ class LoggerIndex(models.Model):
             until=midnight)
         return [d.strftime("%Y%m%d") for d in dates]
 
+    @property
+    def field_names(self):
+        return list(self.loggercolumn_set.values_list('name', flat=True))
+
 
 class LoggerColumn(models.Model):
 

@@ -6,17 +6,7 @@ import django_filters
 from rest_framework.filters import BaseFilterBackend
 from rest_framework.settings import api_settings
 
-from alco.grep.models import Log
 from sphinxsearch.utils import sphinx_escape
-
-
-class TimestampFilter(django_filters.FilterSet):
-    start_ts = django_filters.NumberFilter(name="ts", lookup_type='gte')
-    end_ts = django_filters.NumberFilter(name="ts", lookup_type='lte')
-
-    class Meta:
-        model = Log
-        fields = ['ts', 'host']
 
 
 class SphinxSearchFilter(BaseFilterBackend):

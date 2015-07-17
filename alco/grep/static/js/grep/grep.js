@@ -5,20 +5,24 @@
 		    var result = Backbone.Model.prototype.toJSON.apply(this);
 		    result['time'] = this.time();
 		    result['shortHost'] = this.shortHost();
+		    result['level'] = this.level();
 		    return result;
+	    },
+	    level: function() {
+		    return this.get('js').levelname;
 	    },
 	    time: function () {
 		    return this.get('datetime').split('T')[1].replace('000', '');
 	    },
 	    shortHost: function() {
-		    return this.get('host').split('.')[0]
+		    return (this.get('js').host || '').split('.')[0]
 	    }
     });
 
     /* collections */
     var LogCollection = Backbone.Collection.extend({
         model: LogModel,
-        url: '/api/grep/grep/',
+        url: '/api/grep/logger/',
 
         initialize: function(queryParams) {
             this.page = 1;
