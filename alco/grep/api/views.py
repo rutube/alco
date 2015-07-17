@@ -22,8 +22,6 @@ class GrepView(ListAPIView):
                        filters.SphinxSearchFilter,
                        filters.JSONFieldFilter)
     search_fields = ('logline',)
-    json_fields = ('js.levelname', 'js.sid', 'js.project', 'js.application',
-                   'js.task_name', 'js.task_id')
 
     pagination_class = LogPaginator
 
@@ -56,7 +54,16 @@ class GrepView(ListAPIView):
         return serializer_class
 
     def get_queryset(self):
-        return self.log_model.objects.all()
+        return self.log_model.objects.order_by('ts', 'ms', 'seq')
+
+    def get_json_fields(self, request):
+        fields = self.index.filtered_fields
+        result = []
+        for key, value in request.GET.items():
+            field = key.split('__')[0]
+            if field in fields:
+                result.append(field)
+        return result
 
 
 

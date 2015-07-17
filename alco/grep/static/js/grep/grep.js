@@ -22,13 +22,13 @@
     /* collections */
     var LogCollection = Backbone.Collection.extend({
         model: LogModel,
-        url: '/api/grep/logger/',
+        url: '/api/grep/',
 
         initialize: function(queryParams) {
             this.page = 1;
             this.logger_index = queryParams['logger_index'] || 'logger';
 	        delete queryParams['logger_index'];
-
+	        this.url += this.logger_index + '/';
             this.has_next = true;
             this.loading = false;
             this.queryParams = queryParams || {};
@@ -92,7 +92,8 @@
         itemView: LogView,
 
 	    events: {
-		    "submit #search-form": "submitSearch"
+		    "submit #search-form": "submitSearch",
+		    "click .filter-trigger": "triggerFilter"
 	    },
 
 	    el: "#grep-view",
@@ -103,20 +104,58 @@
             this.listenTo(this.collection, "loaded", this.checkScroll);
             this.listenTo(this.collection, "update", this.appendPageNumber);
 			this.container = $(this.container);
-            // prevent of query duplicating on scroll
+	        // prevent of query duplicating on scroll
             $(window).scroll(_.bind(this.checkScroll, this));
         },
 
-	    submitSearch: function(e) {
-		    e.preventDefault();
-		    this.collection.queryParams['search'] = $('#search-text').val();
+	    reloadCollection: function () {
 		    this.collection.reset();
 		    this.container.html('');
 		    this.collection.loadMore();
 	    },
+
+	    submitSearch: function(e) {
+		    e.preventDefault();
+		    this.collection.queryParams['search'] = $('#search-text').val();
+		    this.reloadCollection();
+	    },
+
+	    triggerFilter: function(e) {
+		    var btn = $(e.target);
+		    var field = btn.data('field');
+		    var value = btn.data('value');
+		    // in ctrl mode current element is toggled, in default mode -
+		    // only current element left
+		    if (!window.event.ctrlKey) {
+			    $('.filter-trigger[data-field="' + field  + '"]').each(function() {
+				    var e = $(this);
+				    e.attr('data-active', 'false');
+				    e.toggleClass('label-default', true);
+		            e.toggleClass('label-success', false);
+			    })
+		    }
+		    var active = (btn.attr('data-active') || "false") == 'true';
+			btn.toggleClass('label-default', active);
+		    btn.toggleClass('label-success', !active);
+		    btn.attr('data-active', !active + '');
+			var filter = '';
+		    $('.filter-trigger[data-field="' + field  + '"][data-active=true]').each(function() {
+			    if (filter) {
+				    filter += ',' + $(this).data('value');
+			    } else {
+				    filter += $(this).data('value');
+			    }
+		    });
+		    if (filter) {
+			    this.collection.queryParams[field + '__in'] = filter;
+		    } else {
+			    delete this.collection.queryParams[field + '__in']
+		    }
+            this.reloadCollection();
+	    },
         checkScroll: function() {
-            var contentOffset = this.$el.offset().top,
-                contentHeight = this.$el.height(),
+            var contentOffset = this.container.offset().top,
+                contentHeight = this.container.height(),
                 pageHeight = $(window).height(),
                 scrollTop = $(window).scrollTop();
             var triggerPoint = 200;

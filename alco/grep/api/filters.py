@@ -61,17 +61,21 @@ class JSONFieldFilter(BaseFilterBackend):
         if not json_fields:
             return queryset
         lookups = self.get_lookups(json_fields, request)
-
-        where = ["%s = %%s" % key for key in lookups.keys()]
-        queryset = queryset.extra(where=where, params=list(lookups.values()))
+        all_values = set()
+        for key, value in lookups.items():
+            if not isinstance(value, (list, tuple)):
+                value = [value]
+            all_values.update(value)
+        #match = ' | '.join('"%s"' % sphinx_escape(value) for value in all_values)
+        queryset = queryset.filter(**lookups)
         return queryset
 
     def get_lookups(self, json_fields, request):
         lookups = {}
         for key in json_fields:
-            value = request.query_params.get(key)
+            value = request.query_params.get(key +'__in')
             if value is None:
                 continue
-            lookups[key] = value
+            lookups[key +'__in'] = value.split(',')
 
         return lookups

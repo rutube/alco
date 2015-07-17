@@ -30,6 +30,11 @@ class LoggerIndex(models.Model):
     def field_names(self):
         return list(self.loggercolumn_set.values_list('name', flat=True))
 
+    @property
+    def filtered_fields(self):
+        return list(self.loggercolumn_set.filter(
+            filtered=True).values_list('name', flat=True))
+
 
 class LoggerColumn(models.Model):
 
