@@ -9,7 +9,7 @@
     <div id="{{ collapse_id }}" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="{{ heading_id }}">
       <div class="panel-body">
           {% for item in items %}
-              <span class="label label-success {{ link_class }}" data-value="{{ item }}">{{ item}}</span>
+              <span class="label label-success" data-field="{{ field }}" data-value="{{ item }}">{{ item}}</span>
           {% endfor %}
       </div>
     </div>

@@ -1,13 +1,20 @@
-{% extends 'base.html' %}
+{% extends 'grep/base.html' %}
 {% load staticfiles grep_tags %}
 {% block extrahead %}
 {% endblock %}
 {% block content %}
     <div id="grep-view" >
+    {% if filters %}
         <div class="panel-group col-lg-2" id="accordion" role="tablist" aria-multiselectable="true">
-            {% accordion_item 'heading-hosts' 'collapse-hosts' 'host-btn' 'Hosts' hosts %}
+            {% for filter in filters %}
+                {% accordion_item filter.heading_id filter.collapse_id filter.field filter.title filter.items %}
+            {% endfor %}
         </div>
+
         <div id="log-list" class="col-lg-10">
+    {% else %}
+        <div id="log-list" class="col-lg-12">
+    {% endif %}
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <form id="search-form">

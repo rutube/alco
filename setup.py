@@ -2,10 +2,11 @@ from setuptools import setup
 
 setup(
     name='alco',
-    version='0.0.8',
+    version='0.0.10',
     packages=['alco',
               'alco.grep',
               'alco.grep.api',
+              'alco.grep.templatetags',
               'alco.collector',
               'alco.collector.api',
               'alco.collector.management',
