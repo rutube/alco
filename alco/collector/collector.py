@@ -3,14 +3,17 @@
 # $Id: $
 
 
-import dateutil.parser
 import time
 import json
+import sys
+
+import dateutil.parser
+from django.core.signals import request_started, request_finished
 from django.db import connections
 import redis
 from amqp import Connection
 from django.conf import settings
-import sys
+
 from alco.collector import keys
 
 
@@ -29,7 +32,7 @@ class Collector(object):
         self.cancelled = True
 
     def connect(self):
-        self.amqp = Connection(settings.RABBITMQ_HOST)
+        self.amqp = Connection(**settings.RABBITMQ)
         self.redis = redis.Redis(settings.REDIS_HOST, db=settings.REDIS_DB)
         self.conn = connections[settings.SPHINX_DATABASE_NAME]
 
@@ -86,6 +89,13 @@ class Collector(object):
                            routing_key=self.index.routing_key)
 
     def push_messages(self):
+        try:
+            request_started.send(None, environ=None)
+            self._push_messages()
+        finally:
+            request_finished.send(None)
+
+    def _push_messages(self):
         messages, self.messages = self.messages, []
         if not messages:
             return
@@ -93,7 +103,7 @@ class Collector(object):
         max_pk = self.redis.incrby(key, len(messages))
         min_pk = max_pk - len(messages)
 
-        hosts = set()
+        columns = dict()
 
         suffix = self.current_date.strftime("%Y%m%d")
         name = "%s_%s" % (self.index.name, suffix)
@@ -101,15 +111,36 @@ class Collector(object):
         rows = []
         args = []
         for pk, data in zip(range(min_pk, max_pk), messages):
-            host = data['data'].get('host')
-            if host:
-                hosts.add(host)
+            # saving seen columns to LoggerColumn model, collecting unique
+            # values for caching in redis
+            for key, value in data['data'].items():
+                columns.setdefault(key, set())
+                if not isinstance(value, (bool, int, float, str)):
+                    continue
+                columns[key].add(value)
+
             rows.append("(%s, %s, %s, %s, %s, %s)")
             args.extend((pk, data['ts'], data['ms'], data['seq'], data['js'],
                          data['message']))
         query += ','.join(rows)
-        key = keys.KEY_HOSTS.format(index=self.index.name)
-        self.redis.sadd(key, hosts)
+
+        existing = self.index.loggercolumn_set.all()
+        filtered = filter(lambda c: c.filtered, existing)
+
+        existing = [c.name for c in existing]
+        filtered = [c.name for c in filtered]
+        new_values = set(columns.keys() - set(existing))
+
+        for column in filtered:
+            values = columns.get(column)
+            if not values:
+                continue
+            key = keys.KEY_COLUMN_VALUES.format(index=self.index.name,
+                                                column=column)
+            self.redis.sadd(key, *values)
+
+        for column in new_values:
+            self.index.loggercolumn_set.create(name=column)
 
         for _ in range(3):
             try:

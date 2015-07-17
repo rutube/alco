@@ -5,4 +5,4 @@
 
 KEY_SEQUENCE = "ALCO:PK:{index}"
 
-KEY_HOSTS = "ALCO:HOSTS:{index}"
+KEY_COLUMN_VALUES = "ALCO:VALUES:{index}:{column}"

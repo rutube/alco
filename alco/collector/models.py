@@ -25,3 +25,11 @@ class LoggerIndex(models.Model):
             dtstart=start,
             until=midnight)
         return [d.strftime("%Y%m%d") for d in dates]
+
+
+class LoggerColumn(models.Model):
+
+    index = models.ForeignKey(LoggerIndex)
+    name = models.CharField(max_length=100)
+    filtered = models.BooleanField(default=False)
+

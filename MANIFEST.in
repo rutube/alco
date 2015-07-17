@@ -1,1 +1,2 @@
-recursive-include alco/templates *
+recursive-include alco/grep/templates *
+recursive-include alco/grep/static *

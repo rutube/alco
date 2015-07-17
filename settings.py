@@ -79,7 +79,12 @@ DATABASE_ROUTERS = (
 )
 
 # log messaging server
-RABBITMQ_HOST = '127.0.0.1'
+RABBITMQ = {
+    'host': '127.0.0.1',
+    'userid': 'guest',
+    'password': 'guest',
+    'virtual_host': '/'
+}
 
 # redis for generating primary key sequences
 REDIS_HOST = '127.0.0.1'
