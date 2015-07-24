@@ -50,9 +50,11 @@
                 return false;
             }
 
-            _.extend(this.queryParams, {
+
+	        var params = {
                 'page': this.page
-            });
+            };
+            _.extend(params, this.queryParams);
 
             this.loading = true;
             this.page += 1;
@@ -60,13 +62,14 @@
             var res = this.fetch({
                 data: this.queryParams
             });
-
-            $.when(res).then(_.bind(function() {
+            $.when(res).then(_.bind(function(e, x, y) {
                 this.loading = false;
 	            this.trigger("loaded");
             }, this));
-
             return res;
+        },
+        getUrl: function() {
+            return this.url + '?' + $.param(this.queryParams, 'page');
         }
     });
 
@@ -98,12 +101,28 @@
 
 	    el: "#grep-view",
 	    container: "#log-container",
+	    triggerStates: {},
 
-        initialize: function() {
+	    countTriggers: function () {
+		    var states = {};
+		    $(".filter-trigger").each(function(){
+			    var e = $(this);
+			    var field = e.attr('data-field');
+			    if(!states[field]) {
+				    states[field] = {active: 0, inactive: 0}
+			    }
+			    states[field]['active']++;
+
+		    });
+
+		    return states;
+	    },
+	    initialize: function() {
             this.listenTo(this.collection, "add", this.appendItem);
             this.listenTo(this.collection, "loaded", this.checkScroll);
             this.listenTo(this.collection, "update", this.appendPageNumber);
 			this.container = $(this.container);
+	        this.triggerStates = this.countTriggers();
 	        // prevent of query duplicating on scroll
             $(window).scroll(_.bind(this.checkScroll, this));
         },
@@ -111,6 +130,8 @@
 	    reloadCollection: function () {
 		    this.collection.reset();
 		    this.container.html('');
+		    var viewUrl = this.collection.getUrl().replace('api/', '');
+		    window.history.pushState(null, null, viewUrl);
 		    this.collection.loadMore();
 	    },
 
@@ -120,32 +141,79 @@
 		    this.reloadCollection();
 	    },
 
+	    triggerState: function(field, values) {
+		    var states = this.triggerStates[field];
+		    if (!values)
+		        return states;
+		    this.triggerStates[field] = states = values;
+		    return states;
+	    },
+
+	    colorizeTrigger: function(elem, active) {
+		    elem.attr('data-active', active + '');
+		    elem.toggleClass('label-default', !active);
+		    elem.toggleClass('label-success', active);
+	    },
+
 	    triggerFilter: function(e) {
+            e.preventDefault();
 		    var btn = $(e.target);
 		    var field = btn.data('field');
 		    var value = btn.data('value');
-		    // in ctrl mode current element is toggled, in default mode -
-		    // only current element left
+		    var state = this.triggerState(field);
+		    var activeCount = state['active'];
+		    var inactiveCount = state['inactive'];
+		    var isActive = function(e) {
+			    return (e.attr('data-active') || "false") == 'true';
+		    };
+		    var active = isActive(btn);
+			var allItems = $('.filter-trigger[data-field="' + field  + '"]');
+
 		    if (!window.event.ctrlKey) {
-			    $('.filter-trigger[data-field="' + field  + '"]').each(function() {
-				    var e = $(this);
-				    e.attr('data-active', 'false');
-				    e.toggleClass('label-default', true);
-		            e.toggleClass('label-success', false);
-			    })
-		    }
-		    var active = (btn.attr('data-active') || "false") == 'true';
-			btn.toggleClass('label-default', active);
-		    btn.toggleClass('label-success', !active);
-		    btn.attr('data-active', !active + '');
-			var filter = '';
-		    $('.filter-trigger[data-field="' + field  + '"][data-active=true]').each(function() {
-			    if (filter) {
-				    filter += ',' + $(this).data('value');
+			    // leave only one selected item.
+			    var total = activeCount + inactiveCount;
+			    this.triggerState(field, {
+				    active: 1,
+				    inactive: total - 1
+			    });
+			    this.colorizeTrigger(allItems, false);
+			    this.colorizeTrigger(btn, true)
+		    } else {
+			    // Ctrl+Click handler
+			    if (active && activeCount == 1) {
+				    // Was single active, become inactive
+				    // All values are unselected now -that is meaningless.
+				    // Activate all items.
+				    this.triggerState(field, {
+					    active: total,
+					    inactive: 0
+				    });
+				    this.colorizeTrigger(allItems, true);
 			    } else {
-				    filter += $(this).data('value');
+
+				    var d = (active)? 1: -1;
+			        this.triggerState(field, {
+				        active: activeCount - d,
+			            inactive: inactiveCount + d
+			        });
+				    // Just toggle clicked value
+				    this.colorizeTrigger(btn, !active);
 			    }
-		    });
+		    }
+		    // collect all filter values
+			var filter = '';
+		    if (this.triggerState(field).inactive != 0) {
+			    allItems.each(function () {
+				    var e = $(this);
+				    if (!isActive(e))
+					    return;
+				    if (filter) {
+					    filter += ',' + $(this).data('value');
+				    } else {
+					    filter += $(this).data('value');
+				    }
+			    });
+		    }
 		    if (filter) {
 			    this.collection.queryParams[field + '__in'] = filter;
 		    } else {

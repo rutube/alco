@@ -69,7 +69,7 @@ DATABASES = {
     },
     SPHINX_DATABASE_NAME: {
         'ENGINE': 'sphinxsearch.backend.sphinx',
-        'HOST': 'elk.rutube2010.ru',
+        'HOST': '127.0.0.1',
         'PORT': '9306',
     }
 }
