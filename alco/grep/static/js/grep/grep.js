@@ -96,12 +96,14 @@
 
 	    events: {
 		    "submit #search-form": "submitSearch",
-		    "click .filter-trigger": "triggerFilter"
+		    "click .filter-trigger": "triggerFilter",
+		    "click .column-trigger": "triggerColumn"
 	    },
 
 	    el: "#grep-view",
 	    container: "#log-container",
 	    triggerStates: {},
+	    columns: [],
 
 	    countTriggers: function () {
 		    var states = {};
@@ -123,15 +125,23 @@
             this.listenTo(this.collection, "update", this.appendPageNumber);
 			this.container = $(this.container);
 	        this.triggerStates = this.countTriggers();
+		    this.collectColumns();
 	        // prevent of query duplicating on scroll
             $(window).scroll(_.bind(this.checkScroll, this));
         },
 
+	    updateLocation: function () {
+		    var viewUrl = this.collection.getUrl().replace('api/', '');
+		    if (this.columns){
+			    var sep = (_.keys(this.collection.queryParams).length > 0)?'&':'';
+			    viewUrl += sep + 'columns=' + this.columns.join(',');
+		    }
+		    window.history.pushState(null, null, viewUrl);
+	    },
 	    reloadCollection: function () {
 		    this.collection.reset();
 		    this.container.html('');
-		    var viewUrl = this.collection.getUrl().replace('api/', '');
-		    window.history.pushState(null, null, viewUrl);
+		    this.updateLocation();
 		    this.collection.loadMore();
 	    },
 
@@ -155,6 +165,31 @@
 		    elem.toggleClass('label-success', active);
 	    },
 
+	    collectColumns: function () {
+		    var columns = [];
+		    var isActive = this.isActive;
+		    $(".column-trigger").each(function () {
+			    var elem = $(this);
+			    if (isActive(elem)) {
+				    var field = elem.data('value');
+				    columns.push(field);
+			    }
+		    });
+		    this.columns = columns;
+	    },
+	    triggerColumn: function(e) {
+		    e.preventDefault();
+		    var btn = $(e.target);
+		    var field = btn.data('value');
+		    var active = !this.isActive(btn);
+		    this.colorizeTrigger(btn, active);
+		    $(".column.column-"+field).toggle(active);
+		    this.collectColumns();
+		    this.updateLocation()
+	    },
+		isActive: function(e) {
+		    return (e.attr('data-active') || "false") == 'true';
+	    },
 	    triggerFilter: function(e) {
             e.preventDefault();
 		    var btn = $(e.target);
@@ -163,10 +198,7 @@
 		    var state = this.triggerState(field);
 		    var activeCount = state['active'];
 		    var inactiveCount = state['inactive'];
-		    var isActive = function(e) {
-			    return (e.attr('data-active') || "false") == 'true';
-		    };
-		    var active = isActive(btn);
+		    var active = this.isActive(btn);
 			var allItems = $('.filter-trigger[data-field="' + field  + '"]');
 
 		    if (!window.event.ctrlKey) {
@@ -201,23 +233,24 @@
 			    }
 		    }
 		    // collect all filter values
-			var filter = '';
+			var filter = [];
+		    var isActive = this.isActive;
 		    if (this.triggerState(field).inactive != 0) {
 			    allItems.each(function () {
 				    var e = $(this);
 				    if (!isActive(e))
 					    return;
-				    if (filter) {
-					    filter += ',' + $(this).data('value');
-				    } else {
-					    filter += $(this).data('value');
-				    }
+				    filter.push(e.data('value'));
 			    });
 		    }
-		    if (filter) {
-			    this.collection.queryParams[field + '__in'] = filter;
-		    } else {
-			    delete this.collection.queryParams[field + '__in']
+
+            delete this.collection.queryParams[field + '__in'];
+		    delete this.collection.queryParams[field];
+
+		    if (filter.length > 1) {
+			    this.collection.queryParams[field + '__in'] = filter.join(',');
+		    } else if (filter.length == 1 ) {
+		        this.collection.queryParams[field] = filter[0];
 		    }
             this.reloadCollection();
 	    },
@@ -299,7 +332,7 @@
             };
 
 	        _.extend(filters, this.parseQueryString(query_string));
-
+			delete filters['columns'];
             var collection = new LogCollection(filters);
             this.view = new GrepView({
                 collection: collection

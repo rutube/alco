@@ -1,20 +1,21 @@
 {% extends 'grep/base.html' %}
 {% load staticfiles grep_tags %}
 {% block extrahead %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/grep/grep.css' %}" />
+
 {% endblock %}
 {% block content %}
     <div id="grep-view" >
-    {% if filters %}
         <div class="panel-group col-lg-2" id="accordion" role="tablist" aria-multiselectable="true">
-            {% for filter in filters %}
-                {% accordion_item filter.heading_id filter.collapse_id filter.field filter.title filter.items %}
-            {% endfor %}
+            {% columns_item "heading-columns" "collapse-columns" "columns" "Columns" column_names %}
+            {% if filters %}
+                {% for filter in filters %}
+                    {% filter_item filter.heading_id filter.collapse_id filter.field filter.title filter.items %}
+                {% endfor %}
+            {% endif %}
         </div>
 
         <div id="log-list" class="col-lg-10">
-    {% else %}
-        <div id="log-list" class="col-lg-12">
-    {% endif %}
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <form id="search-form">
@@ -43,8 +44,13 @@
         </pre>
         </div>
     </div>
-    <div class="hidden"><script id="log-template" type="text/template"><span class="ts"><%= time %></span> <span class="host"><%= shortHost %></span> <span class="info"><%= level %></span> <%= logline %></script>
-    </div>
+    <div class="hidden">{% spaceless %}<script id="log-template" type="text/template">
+        <span title="<%= datetime %>" class="column column-ts"><%= time %></span>
+        {% for c in columns %}
+            <span title="{{ c.name }}" class="column column-{{ c.name }} {% if not c.display %}hidden{% endif %}"><%= {{ c.name }} %></span>
+        {% endfor %}
+        <%= logline %></script>
+    {% endspaceless %}</div>
 {% endblock %}
 
 {% block footer %}

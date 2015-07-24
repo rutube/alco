@@ -35,10 +35,16 @@ class LoggerIndex(models.Model):
         return list(self.loggercolumn_set.filter(
             filtered=True).values_list('name', flat=True))
 
+    def __str__(self):
+        return self.name
+
 
 class LoggerColumn(models.Model):
 
     index = models.ForeignKey(LoggerIndex)
     name = models.CharField(max_length=100)
     filtered = models.BooleanField(default=False)
+    display = models.BooleanField(default=True)
 
+    def __str__(self):
+        return '%s(%s)' % (self.name, self.index)

@@ -20,21 +20,24 @@ class GrepView(DetailView):
 
     def get_context_data(self, **kwargs):
         cd = super(GrepView, self).get_context_data(**kwargs)
-        cd['filters'] = self.get_filters()
-        return cd
-
-    def get_filters(self):
         obj = self.get_object(self.get_queryset())
         filters = []
-        for f in obj.loggercolumn_set.filter(filtered=True).order_by('name'):
-            filters.append({
-                'title': f.name.title(),
-                'field': f.name,
-                'heading_id': 'heading-%s' % f.name,
-                'collapse_id': 'collapse-%s' % f.name,
-                'items': self.get_field_values(obj.name, f.name)
-            })
-        return filters
+        columns = []
+        for f in obj.loggercolumn_set.order_by('name'):
+            if f.display:
+                columns.append(f)
+            if f.filtered:
+                filters.append({
+                    'title': f.name.title(),
+                    'field': f.name,
+                    'heading_id': 'heading-%s' % f.name,
+                    'collapse_id': 'collapse-%s' % f.name,
+                    'items': self.get_field_values(obj.name, f.name)
+                })
+        cd['filters'] = filters
+        cd['columns'] = columns
+        cd['column_names'] = [c.name for c in columns]
+        return cd
 
     @staticmethod
     def get_field_values(index, column):
