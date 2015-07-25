@@ -29,7 +29,7 @@ r = urlopen(os.path.join(ALCO_HOST, 'api/collector/indices/?format=json'))
 indices = json.loads(r.read().decode('utf-8'))
 for idx in indices:
     name = idx['name']
-    for dt in idx['index_dates']:
+    for dt in idx['index_names']:
         path = os.path.join("/data/sphinx/", name, dt)
         if not os.path.exists(path):
             os.makedirs(path)

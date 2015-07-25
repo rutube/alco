@@ -6,7 +6,7 @@ from datetime import datetime
 from django.db import models
 from jsonfield import JSONField
 
-from sphinxsearch.models import SphinxModel
+from sphinxsearch.models import SphinxModel, SphinxDateTimeField
 from alco.collector.models import LoggerIndex
 
 
@@ -16,7 +16,7 @@ class LogBase(SphinxModel):
         ordering = ('ts', 'seq')
         db_table = 'logger'
 
-    ts = models.IntegerField()
+    ts = SphinxDateTimeField()
     ms = models.IntegerField()
     seq = models.BigIntegerField()
     logline = models.TextField()
@@ -24,7 +24,7 @@ class LogBase(SphinxModel):
 
     @property
     def datetime(self):
-        return datetime.fromtimestamp(self.ts).replace(microsecond=self.ms)
+        return self.ts.replace(microsecond=self.ms)
 
     @property
     def timestamp(self):

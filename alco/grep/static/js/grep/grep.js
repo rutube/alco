@@ -97,7 +97,9 @@
 	    events: {
 		    "submit #search-form": "submitSearch",
 		    "click .filter-trigger": "triggerFilter",
-		    "click .column-trigger": "triggerColumn"
+		    "click .column-trigger": "triggerColumn",
+		    "click .dates-trigger": "triggerDates",
+		    "keydown #start-time": "checkStartTime"
 	    },
 
 	    el: "#grep-view",
@@ -129,7 +131,17 @@
 	        // prevent of query duplicating on scroll
             $(window).scroll(_.bind(this.checkScroll, this));
         },
-
+		checkStartTime: function (e) {
+			if (e.keyCode == 13) {
+				var date = $('.dates-trigger[data-active="true"]').first();
+				var time = e.target.value;
+				var value = date.data('value');
+				if (time)
+					value += ' ' + time;
+				this.collection.queryParams['start_ts'] = value;
+				this.reloadCollection();
+			}
+		},
 	    updateLocation: function () {
 		    var viewUrl = this.collection.getUrl().replace('api/', '');
 		    if (this.columns){
@@ -186,6 +198,19 @@
 		    $(".column.column-"+field).toggle(active);
 		    this.collectColumns();
 		    this.updateLocation()
+	    },
+	    triggerDates: function(e) {
+		    e.preventDefault();
+		    var btn = $(e.target);
+		    var active = !this.isActive(btn);
+		    var value = btn.data('value');
+		    this.colorizeTrigger($('.dates-trigger'), false);
+		    this.colorizeTrigger(btn, true);
+		    var time = $("#start-time").val();
+		    if (time)
+		        value += ' ' + time;
+		    this.collection.queryParams['start_ts'] = value;
+		    this.reloadCollection();
 	    },
 		isActive: function(e) {
 		    return (e.attr('data-active') || "false") == 'true';

@@ -6,7 +6,8 @@
 {% endblock %}
 {% block content %}
     <div id="grep-view" >
-        <div class="panel-group col-lg-2" id="accordion" role="tablist" aria-multiselectable="true">
+        <div class="panel-group col-lg-2" role="tablist" aria-multiselectable="true">
+            {% dates_item "heading-dates" "collapse-dates" "dates" "Dates" object.index_dates|slice:":-1" %}
             {% columns_item "heading-columns" "collapse-columns" "columns" "Columns" column_names %}
             {% if filters %}
                 {% for filter in filters %}

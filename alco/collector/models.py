@@ -14,17 +14,19 @@ class LoggerIndex(models.Model):
     routing_key = models.CharField(max_length=30, default='logstash')
 
     @property
+    def index_names(self):
+        return [d.strftime("%Y%m%d") for d in self.index_dates]
+
+    @property
     def index_dates(self):
         today = datetime.date.today()
-
         midnight = today + datetime.timedelta(days=1)
-
         start = midnight - datetime.timedelta(days=self.intervals)
         dates = rrule.rrule(
             rrule.DAILY,
             dtstart=start,
             until=midnight)
-        return [d.strftime("%Y%m%d") for d in dates]
+        return list(dates)
 
     @property
     def field_names(self):

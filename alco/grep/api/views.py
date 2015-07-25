@@ -28,7 +28,7 @@ class GrepView(ListAPIView):
     @property
     def filter_class(self):
         class TimestampFilter(django_filters.FilterSet):
-            start_ts = django_filters.NumberFilter(name="ts", lookup_type='gte')
+            start_ts = django_filters.DateTimeFilter(name="ts", lookup_type='gte')
             end_ts = django_filters.NumberFilter(name="ts", lookup_type='lte')
 
             class Meta:

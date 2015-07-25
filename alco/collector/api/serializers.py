@@ -11,4 +11,4 @@ class LoggerIndexSerializer(ModelSerializer):
     class Meta:
         model = LoggerIndex
 
-    index_dates = ListField()
+    index_names = ListField()

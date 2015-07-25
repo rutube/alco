@@ -17,3 +17,8 @@ def filter_item(heading_id, collapse_id, field, title, items):
 @register.inclusion_tag('grep/tags/columns_item.html')
 def columns_item(heading_id, collapse_id, field, title, items):
     return locals()
+
+
+@register.inclusion_tag('grep/tags/dates_item.html')
+def dates_item(heading_id, collapse_id, field, title, items):
+    return locals()
