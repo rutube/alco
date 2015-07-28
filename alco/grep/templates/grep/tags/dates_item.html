@@ -7,7 +7,7 @@
       </h4>
     </div>
     <div id="{{ collapse_id }}" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="{{ heading_id }}">
-      <div class="panel-body">
+      <div class="panel-body" id="dates-trigger-container">
           {% for item in items %}
               {% if forloop.last %}
               <a class="label label-success dates-trigger" href="?{{ field }}={{ item|date:"Y-m-d" }}" data-active="true" data-value="{{ item|date:"Y-m-d" }}">{{ item|date:"Y-m-d" }}</a>

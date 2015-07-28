@@ -1,4 +1,13 @@
 (function($, _, Backbone) {
+
+	/* helpers */
+
+	var colorizeTrigger = function(elem, active) {
+	    elem.attr('data-active', active + '');
+	    elem.toggleClass('label-default', !active);
+	    elem.toggleClass('label-success', active);
+    };
+
     /* models */
     var LogModel = Backbone.Model.extend({
 	    toJSON: function () {
@@ -9,7 +18,7 @@
 		    return result;
 	    },
 	    level: function() {
-		    return this.get('js').levelname;
+		    return this.get('js')['levelname'];
 	    },
 	    time: function () {
 		    return this.get('datetime').split('T')[1].replace('000', '');
@@ -19,7 +28,91 @@
 	    }
     });
 
+	var ColumnModel = Backbone.Model.extend({
+		defaults: {
+            name: null,
+            visible: true
+	    }
+	});
+
+	var DateModel = Backbone.Model.extend({
+		defaults: {
+            date: null,
+            active: true
+	    }
+	});
+
+	var FilterModel = Backbone.Model.extend({
+		defaults: {
+            name: null,
+            values: true
+	    }
+
+	});
+
+	var ValueModel = Backbone.Model.extend({
+		defaults: {
+			value: null,
+			selected: true
+		}
+	});
+
     /* collections */
+
+    var ColumnCollection = Backbone.Collection.extend({
+	    model: ColumnModel
+    });
+
+    var DateCollection = Backbone.Collection.extend({
+	    model: DateModel,
+	    updateActiveState: function (model) {
+		    var seen = false;
+		    for (var i=0; i<this.models.length; i++) {
+			    var cur = this.models[i];
+			    if (cur.get('date') == model.get('date')) {
+				    seen = true;
+			    }
+			    if (i < this.models.length - 1)
+			        cur.set({'active': seen});
+			    else
+			        cur.set({'active': true});
+		    }
+		    this.trigger('filter-changed', 'dates', this.models);
+		    console.log(this.getFilterParams());
+	    },
+	    initialize: function (models, options) {
+		    var params = (options|| {}).queryParams || {};
+		    var start_ts = params.start_ts;
+		    var date = null;
+		    if (start_ts) {
+			    date = start_ts.split(' ')[0]
+		    }
+		    for (var i=0; i<models.length; i++){
+			    var m = models[i];
+			    m.on('date-active-changed', this.updateActiveState, this);
+			    if (date)
+				    m.set('active', m.get('date') >= date);
+		    }
+		    models[models.length - 1].set('active', true);
+	    },
+		getFilterParams: function() {
+			var active = _.first(this.filter(function (model) {
+				return model.get('active')
+			}));
+			var date = active.get('date');
+			return {start_ts: date}
+		}
+
+    });
+
+    var FilterCollection = Backbone.Collection.extend({
+	    model: FilterModel
+    });
+
+    var ValueCollection = Backbone.Collection.extend({
+	    model: ValueModel
+    });
+
     var LogCollection = Backbone.Collection.extend({
         model: LogModel,
         url: '/api/grep/',
@@ -35,8 +128,8 @@
         },
 
         parse: function(resp) {
-            this.has_next = resp.next || false;
-            return resp.results;
+            this.has_next = resp['next'] || false;
+            return resp['results'];
         },
 
 	    reset: function(models, options) {
@@ -73,8 +166,8 @@
         }
     });
 
-
     /* views */
+
     var LogView = Backbone.View.extend({
         tagName: 'div',
         className: 'log-line',
@@ -91,14 +184,75 @@
         }
     });
 
-    var GrepView = Backbone.View.extend({
+	var DateView = Backbone.View.extend({
+		tagName: 'a',
+		className: 'dates-trigger',
+
+		events: {
+			'click': 'toggleActive'
+		},
+
+		initialize: function() {
+			this.listenTo(this.model, 'change:active', this.colorize)
+		},
+
+		toggleActive: function(e){
+			e.preventDefault();
+			var active = !this.model.get('active');
+			this.model.set({active: active});
+			console.log("date " + this.model.get('date') + " now is " + active);
+			// add separate version of change:active event, because of
+			// modifications of model done by collection
+			this.model.trigger('date-active-changed', this.model);
+		},
+
+		colorize: function(model) {
+			colorizeTrigger(this.$el, model.get('active'));
+		}
+	});
+
+	var DateFilterView = Backbone.View.extend({
+		el: "#dates-trigger-container",
+
+		initItemViews: function () {
+			var self = this;
+			return this.$el.find('.dates-trigger').map(function (i, el) {
+				var elem = $(el);
+				var model = new DateModel({
+					'active': elem.data('active'),
+					'date': elem.data('value')
+				});
+				var view = new DateView({el: el, model: model});
+				self.itemViews.push(view);
+				return model;
+			});
+
+		},
+		initialize: function(options) {
+			var params = (options || {}).queryParams || {};
+			this.itemViews = [];
+			var models = this.initItemViews();
+			this.collection = new DateCollection(models.toArray(),
+				{queryParams: params});
+        }
+	});
+
+	var GrepView = Backbone.View.extend({
+		el: "#grep-view",
+		initialize: function(options) {
+			var queryParams = options['queryParams'] || {};
+			this.dateFilterView = new DateFilterView({queryParams: queryParams});
+		}
+	});
+
+    var ResultsView = Backbone.View.extend({
         itemView: LogView,
 
 	    events: {
 		    "submit #search-form": "submitSearch",
 		    "click .filter-trigger": "triggerFilter",
 		    "click .column-trigger": "triggerColumn",
-		    "click .dates-trigger": "triggerDates",
+		    // "click .dates-trigger": "triggerDates",
 		    "keydown #start-time": "checkStartTime"
 	    },
 
@@ -169,12 +323,6 @@
 		        return states;
 		    this.triggerStates[field] = states = values;
 		    return states;
-	    },
-
-	    colorizeTrigger: function(elem, active) {
-		    elem.attr('data-active', active + '');
-		    elem.toggleClass('label-default', !active);
-		    elem.toggleClass('label-success', active);
 	    },
 
 	    collectColumns: function () {
@@ -356,11 +504,13 @@
                 logger_index: logger_index
             };
 
-	        _.extend(filters, this.parseQueryString(query_string));
+	        var queryParams = this.parseQueryString(query_string);
+	        _.extend(filters, queryParams);
 			delete filters['columns'];
             var collection = new LogCollection(filters);
             this.view = new GrepView({
-                collection: collection
+                collection: collection,
+	            queryParams: queryParams
             });
             $('#log-container').html(''); //xxx
 
