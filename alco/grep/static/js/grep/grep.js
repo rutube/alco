@@ -8,6 +8,9 @@
 	    elem.toggleClass('label-success', active);
     };
 
+
+	var filterEvents = _.extend({}, Backbone.Events);
+
     /* models */
     var LogModel = Backbone.Model.extend({
 	    toJSON: function () {
@@ -60,7 +63,42 @@
     /* collections */
 
     var ColumnCollection = Backbone.Collection.extend({
-	    model: ColumnModel
+	    model: ColumnModel,
+	    isVisible: function (model) {
+		    return model.get('visible')
+	    },
+	    updateActiveState: function (model) {
+		    var seen = false;
+		    if (this.filter(this.isVisible).length == 0){
+			    for (var i=0; i<this.models.length; i++) {
+				    var cur = this.models[i];
+				    cur.set({'visible': true});
+			    }
+		    }
+		    filterEvents.trigger('filter-changed', 'columns');
+	    },
+	    initialize: function (models, options) {
+		    var params = (options|| {}).queryParams || {};
+		    var columns = params.columns;
+		    if (columns)
+			    columns = columns.split(',');
+
+		    for (var i=0; i<models.length; i++){
+			    var m = models[i];
+			    m.on('column-visible-changed', this.updateActiveState, this);
+			    if (columns)
+				    m.set('visible', _.contains(columns, m.get('name')));
+		    }
+	    },
+
+	    getFilterParams: function() {
+			var visible = this.filter(this.isVisible);
+			if (visible.length == 0)
+				visible = this.models;
+		    return {columns: visible.map(function(model) {
+					return model.get('name')
+				}).join(',')}
+		}
     });
 
     var DateCollection = Backbone.Collection.extend({
@@ -77,8 +115,7 @@
 			    else
 			        cur.set({'active': true});
 		    }
-		    this.trigger('filter-changed', 'dates');
-		    console.log(this.getFilterParams());
+		    filterEvents.trigger('filter-changed', 'dates');
 	    },
 
 	    initialize: function (models, options) {
@@ -186,6 +223,63 @@
         }
     });
 
+	var ColumnView = Backbone.View.extend({
+		tagName: 'a',
+		className: 'column-trigger',
+
+		events: {
+			'click': 'toggleVisible'
+		},
+
+		initialize: function() {
+			this.listenTo(this.model, 'change:visible', this.colorize)
+		},
+
+		toggleVisible: function(e){
+			e.preventDefault();
+			var visible = !this.model.get('visible');
+			this.model.set({visible: visible});
+			console.log("column " + this.model.get('name') + " now is " + visible);
+			// add separate version of change:active event, because of
+			// modifications of model done by collection
+			this.model.trigger('column-visible-changed', this.model);
+		},
+
+		colorize: function(model) {
+			colorizeTrigger(this.$el, model.get('visible'));
+		}
+	});
+
+	var ColumnFilterView = Backbone.View.extend({
+		el: "#columns-trigger-container",
+
+		initItemViews: function () {
+			var self = this;
+			return this.$el.find('.column-trigger').map(function (i, el) {
+				var elem = $(el);
+				var model = new ColumnModel({
+					'visible': elem.data('active'),
+					'name': elem.data('value')
+				});
+				var view = new ColumnView({el: el, model: model});
+				self.itemViews.push(view);
+				return model;
+			});
+		},
+
+		initialize: function (options) {
+			var params = (options || {}).queryParams || {};
+			this.itemViews = [];
+			var models = this.initItemViews();
+			this.collection = new ColumnCollection(models.toArray(),
+				{queryParams: params});
+		},
+
+		getFilterParams: function(){
+			return this.collection.getFilterParams();
+		}
+	});
+
 	var DateView = Backbone.View.extend({
 		tagName: 'a',
 		className: 'dates-trigger',
@@ -249,15 +343,16 @@
 			this.timeInput = this.$el.find('#start-time');
 			this.timeInput.val(this.time);
         },
+
 		updateTime: function(e) {
 			if (e.keyCode != 13)
 				return;
 			e.preventDefault();
 			this.time = this.timeInput.val();
 
-			this.trigger('filter-changed', 'dates');
-		    console.log(this.getFilterParams());
+			filterEvents.trigger('filter-changed', 'time');
 		},
+
 		getFilterParams: function() {
 			var params = this.collection.getFilterParams();
 			if(params['start_ts'] && this.time) {
@@ -270,9 +365,19 @@
 	var GrepView = Backbone.View.extend({
 		el: "#grep-view",
 		initialize: function(options) {
-			var queryParams = options['queryParams'] || {};
-			this.dateFilterView = new DateFilterView({queryParams: queryParams});
+			this.queryParams = options['queryParams'] || {};
+			this.dateFilterView = new DateFilterView({queryParams: this.queryParams});
+			this.columnFilterView = new ColumnFilterView({queryParams: this.queryParams});
+			this.listenTo(filterEvents, 'filter-changed', this.updateQueryParams);
+		},
+		updateQueryParams: function (args) {
+			console.log(args);
+			this.queryParams = {};
+			_.extend(this.queryParams, this.dateFilterView.getFilterParams());
+			_.extend(this.queryParams, this.columnFilterView.getFilterParams());
+			console.log(this.queryParams);
 		}
+
 	});
 
     var ResultsView = Backbone.View.extend({
@@ -280,10 +385,9 @@
 
 	    events: {
 		    "submit #search-form": "submitSearch",
-		    "click .filter-trigger": "triggerFilter",
-		    "click .column-trigger": "triggerColumn",
-		    // "click .dates-trigger": "triggerDates",
-		    "keydown #start-time": "checkStartTime"
+		    "click .filter-trigger": "triggerFilter"
+		    //"click .column-trigger": "triggerColumn",
+		    //"keydown #start-time": "checkStartTime"
 	    },
 
 	    el: "#grep-view",
