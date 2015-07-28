@@ -14,7 +14,7 @@
     /* models */
     var LogModel = Backbone.Model.extend({
 	    toJSON: function () {
-		    var result = Backbone.Model.prototype.toJSON.apply(this);
+		    var result = Backbone.Model.prototype.toJSON.call(this);
 		    result['time'] = this.time();
 		    result['shortHost'] = this.shortHost();
 		    result['level'] = this.level();
@@ -31,45 +31,60 @@
 	    }
     });
 
-	var ColumnModel = Backbone.Model.extend({
+
+	var BaseFilterModel = Backbone.Model.extend({
+		defaults: {
+            name: null,
+            active: true
+	    },
+		triggerEvent: 'visible-changed',
+
+		triggerFilterChange: function(options) {
+			this.trigger(this.triggerEvent, this, options);
+		}
+	});
+
+	var ColumnModel = BaseFilterModel.extend({
+		name: 'ColumnModel',
 		defaults: {
             name: null,
             visible: true
-	    }
+	    },
+		triggerEvent: 'column-visible-changed'
 	});
 
-	var DateModel = Backbone.Model.extend({
+	var DateModel = BaseFilterModel.extend({
+		name: 'DateModel',
 		defaults: {
             date: null,
             active: true
-	    }
+	    },
+
+		triggerEvent: 'date-active-changed'
+
 	});
 
-	var FilterModel = Backbone.Model.extend({
+	var FieldModel = BaseFilterModel.extend({
+		name: 'FieldModel',
 		defaults: {
             name: null,
-            values: true
-	    }
+			active: true,
+            value: null
+	    },
 
-	});
+		triggerEvent: 'field-active-changed'
 
-	var ValueModel = Backbone.Model.extend({
-		defaults: {
-			value: null,
-			selected: true
-		}
 	});
 
     /* collections */
 
     var ColumnCollection = Backbone.Collection.extend({
 	    model: ColumnModel,
-	    isVisible: function (model) {
+	    isActive: function (model) {
 		    return model.get('visible')
 	    },
 	    updateActiveState: function (model) {
-		    var seen = false;
-		    if (this.filter(this.isVisible).length == 0){
+		    if (this.filter(this.isActive).length == 0){
 			    for (var i=0; i<this.models.length; i++) {
 				    var cur = this.models[i];
 				    cur.set({'visible': true});
@@ -77,6 +92,7 @@
 		    }
 		    filterEvents.trigger('filter-changed', 'columns');
 	    },
+
 	    initialize: function (models, options) {
 		    var params = (options|| {}).queryParams || {};
 		    var columns = params.columns;
@@ -85,16 +101,16 @@
 
 		    for (var i=0; i<models.length; i++){
 			    var m = models[i];
-			    m.on('column-visible-changed', this.updateActiveState, this);
+			    m.on(m.triggerEvent, this.updateActiveState, this);
 			    if (columns)
 				    m.set('visible', _.contains(columns, m.get('name')));
 		    }
 	    },
 
 	    getFilterParams: function() {
-			var visible = this.filter(this.isVisible);
-			if (visible.length == 0)
-				visible = this.models;
+			var visible = this.filter(this.isActive);
+			if (visible.length == 0 || visible.length == this.models.length)
+				return {};
 		    return {columns: visible.map(function(model) {
 					return model.get('name')
 				}).join(',')}
@@ -144,15 +160,65 @@
 
     });
 
-    var FilterCollection = Backbone.Collection.extend({
-	    model: FilterModel
+    var FieldCollection = Backbone.Collection.extend({
+	    model: FieldModel,
+	    isActive: function (model) {
+		    return model.get('active')
+	    },
+	    updateActiveState: function (model, options) {
+		    var cur, i, ctrl = (options || {})['ctrl'] || false;
+		    var field = false;
+		    var selected = this.filter(this.isActive).length;
+		    var currentActive = model.get('active');
+		    for (i=0; i<this.models.length; i++) {
+			    cur = this.models[i];
+			    var current = cur.get('value') == model.get('value');
+				if (!ctrl) {
+					cur.set('active', current);
+				} else {
+					if (selected == 0)
+						// all disabled - revert to all active
+						cur.set('active', true);
+					//else if (cure)
+					//	cur.set('active', current)
+				}
+		    }
+		    filterEvents.trigger('filter-changed', 'field-' + field);
+	    },
+
+	    initialize: function (models, options) {
+		    options = options|| {};
+		    var params = options.queryParams || {};
+		    var filterName = options.filterName;
+		    var values = params[filterName];
+		    if (values)
+			    values = [values];
+		    else {
+			    values =  params[filterName + '__in'];
+			    if (values) values = values.split(',')
+		    }
+
+		    for (var i=0; i<models.length; i++){
+			    var m = models[i];
+			    m.on(m.triggerEvent, this.updateActiveState, this);
+			    if (values)
+				    m.set('active', _.contains(values, m.get('value')));
+		    }
+	    },
+
+	    getFilterParams: function() {
+			var visible = this.filter(this.isActive);
+			if (visible.length == 0 || visible.length == this.models.length)
+				return {};
+		    var result = {};
+		    result[visible[0].get('field')] = visible.map(function(model) {
+					return model.get('value')
+				}).join(',');
+			return result;
+		}
     });
 
-    var ValueCollection = Backbone.Collection.extend({
-	    model: ValueModel
-    });
-
-    var LogCollection = Backbone.Collection.extend({
+	var LogCollection = Backbone.Collection.extend({
         model: LogModel,
         url: '/api/grep/',
 
@@ -223,56 +289,76 @@
         }
     });
 
-	var ColumnView = Backbone.View.extend({
-		tagName: 'a',
-		className: 'column-trigger',
 
+	var BaseFilterItemView = Backbone.View.extend({
+		tagName: 'a',
 		events: {
-			'click': 'toggleVisible'
+			'click': 'toggleFilter'
 		},
+		stateField: 'active',
+		nameField: 'name',
 
 		initialize: function() {
-			this.listenTo(this.model, 'change:visible', this.colorize)
+			this.listenTo(this.model, 'change:' + this.stateField, this.colorize)
 		},
 
-		toggleVisible: function(e){
+
+		toggleFilter: function(e){
 			e.preventDefault();
-			var visible = !this.model.get('visible');
-			this.model.set({visible: visible});
-			console.log("column " + this.model.get('name') + " now is " + visible);
+			var active = !this.model.get(this.stateField);
+			this.model.set(this.stateField, active);
+			console.log(this.model.name + "." + this.model.get(this.nameField) + " now is " + active);
 			// add separate version of change:active event, because of
 			// modifications of model done by collection
-			this.model.trigger('column-visible-changed', this.model);
+			this.model.triggerFilterChange({ctrl: window.event.ctrlKey});
 		},
 
 		colorize: function(model) {
-			colorizeTrigger(this.$el, model.get('visible'));
+			colorizeTrigger(this.$el, model.get(this.stateField));
 		}
 	});
 
-	var ColumnFilterView = Backbone.View.extend({
-		el: "#columns-trigger-container",
+	var ColumnView = BaseFilterItemView.extend({
+		name: 'ColumnView',
+		className: 'column-trigger',
+		stateField: 'visible'
+	});
+
+	var BaseFilterView = Backbone.View.extend({
+		name: 'BaseFilterView',
+		fields: {
+			'active': 'active',
+			'name': 'name',
+			'value': 'value'
+		},
+
+		model: Backbone.Model.extend({}),
+		itemView: Backbone.View.extend({}),
+		collection: Backbone.Collection.extend({}),
+		itemSelector: '.filter-trigger',
+
+		initialize: function (options) {
+			this.itemViews = [];
+			var models = this.initItemViews();
+			this.collection = new this.collection(models, options);
+		},
 
 		initItemViews: function () {
 			var self = this;
-			return this.$el.find('.column-trigger').map(function (i, el) {
+			return _.map(this.$el.find(this.itemSelector), function (el) {
 				var elem = $(el);
-				var model = new ColumnModel({
-					'visible': elem.data('active'),
-					'name': elem.data('value')
-				});
-				var view = new ColumnView({el: el, model: model});
+				var data = {};
+				for (var modelKey in this.fields) {
+					if (!this.fields.hasOwnProperty(modelKey))
+						continue;
+					var elemKey = this.fields[modelKey];
+					data[modelKey] = elem.data(elemKey);
+				}
+				var model = new this.model(data);
+				var view = new this.itemView({el: el, model: model});
 				self.itemViews.push(view);
 				return model;
-			});
-		},
-
-		initialize: function (options) {
-			var params = (options || {}).queryParams || {};
-			this.itemViews = [];
-			var models = this.initItemViews();
-			this.collection = new ColumnCollection(models.toArray(),
-				{queryParams: params});
+			}, this);
 		},
 
 		getFilterParams: function(){
@@ -280,71 +366,58 @@
 		}
 	});
 
-	var DateView = Backbone.View.extend({
-		tagName: 'a',
-		className: 'dates-trigger',
-
-		events: {
-			'click': 'toggleActive'
-		},
-
-		initialize: function() {
-			this.listenTo(this.model, 'change:active', this.colorize)
-		},
-
-		toggleActive: function(e){
-			e.preventDefault();
-			var active = !this.model.get('active');
-			this.model.set({active: active});
-			console.log("date " + this.model.get('date') + " now is " + active);
-			// add separate version of change:active event, because of
-			// modifications of model done by collection
-			this.model.trigger('date-active-changed', this.model);
-		},
-
-		colorize: function(model) {
-			colorizeTrigger(this.$el, model.get('active'));
+	var ColumnFilterView = BaseFilterView.extend({
+		name: 'ColumnFilterView',
+		el: "#columns-trigger-container",
+		itemSelector: '.column-trigger',
+		model: ColumnModel,
+		itemView: ColumnView,
+		collection: ColumnCollection,
+		fields: {
+			'visible': 'active',
+			'name': 'value'
 		}
 	});
 
-	var DateFilterView = Backbone.View.extend({
-		el: "#dates-trigger-container",
-		events: {
-			'keydown #start-time': 'updateTime'
-		},
-		initItemViews: function () {
-			var self = this;
-			return this.$el.find('.dates-trigger').map(function (i, el) {
-				var elem = $(el);
-				var model = new DateModel({
-					'active': elem.data('active'),
-					'date': elem.data('value')
-				});
-				var view = new DateView({el: el, model: model});
-				self.itemViews.push(view);
-				return model;
-			});
+	var DateView = BaseFilterItemView.extend({
+		name: 'DateView',
+		className: 'dates-trigger',
+		nameField: 'date'
+	});
 
+	var DateFilterView = BaseFilterView.extend({
+		name: 'DateFilterView',
+		el: "#dates-trigger-container",
+		itemSelector: '.dates-trigger',
+		model: DateModel,
+		itemView: DateView,
+		collection: DateCollection,
+		events: {
+			'keydown #start-time': 'updateStartTime'
 		},
-		getStartTime: function (params) {
+		fields: {
+			date: 'value',
+			active: 'active'
+		},
+
+		initStartTime: function (options) {
+			var params = (options || {}).queryParams || {};
 			var start_ts = (params || {})['start_ts'] || '';
 			var tokens = start_ts.split(' ', 2);
 			if (tokens.length > 1)
-				return tokens[1];
-			return '';
-		},
-		initialize: function(options) {
-			var params = (options || {}).queryParams || {};
-			this.itemViews = [];
-			var models = this.initItemViews();
-			this.collection = new DateCollection(models.toArray(),
-				{queryParams: params});
-			this.time = this.getStartTime(params);
+				this.time = tokens[1];
+			else
+				this.time = '';
 			this.timeInput = this.$el.find('#start-time');
 			this.timeInput.val(this.time);
-        },
+		},
 
-		updateTime: function(e) {
+		initialize: function(options) {
+			BaseFilterView.prototype.initialize.call(this, options);
+			this.initStartTime(options);
+		},
+
+		updateStartTime: function(e) {
 			if (e.keyCode != 13)
 				return;
 			e.preventDefault();
@@ -354,11 +427,37 @@
 		},
 
 		getFilterParams: function() {
-			var params = this.collection.getFilterParams();
+			var params = BaseFilterView.prototype.getFilterParams.call(this);
 			if(params['start_ts'] && this.time) {
 				params['start_ts'] += ' ' + this.time;
 			}
 			return params;
+		}
+	});
+
+	var FieldView = BaseFilterItemView.extend({
+		name: 'FieldView',
+		className: 'filter-trigger',
+		nameField: 'field'
+
+	});
+
+	var FieldFilterView = BaseFilterView.extend({
+		name: 'FieldFilterView',
+		itemSelector: '.filter-trigger',
+		model: FieldModel,
+		itemView: FieldView,
+		collection: FieldCollection,
+		fields: {
+			value: 'value',
+			active: 'active',
+			field: 'field'
+		},
+
+		initialize: function (options) {
+			BaseFilterView.prototype.initialize.call(this, options);
+			options = options || {};
+			this.filterName = options['filterName'];
 		}
 	});
 
@@ -369,13 +468,29 @@
 			this.dateFilterView = new DateFilterView({queryParams: this.queryParams});
 			this.columnFilterView = new ColumnFilterView({queryParams: this.queryParams});
 			this.listenTo(filterEvents, 'filter-changed', this.updateQueryParams);
+			this.fieldFilters = [];
+			_.map($('.filter-trigger-container'), this.initFilterView, this);
 		},
 		updateQueryParams: function (args) {
 			console.log(args);
 			this.queryParams = {};
 			_.extend(this.queryParams, this.dateFilterView.getFilterParams());
 			_.extend(this.queryParams, this.columnFilterView.getFilterParams());
+			_.each(this.fieldFilters, function(view){
+				_.extend(this.queryParams, view.getFilterParams());
+
+			}, this);
+
 			console.log(this.queryParams);
+		},
+
+		initFilterView: function(el) {
+			var filterName = $(el).data('field');
+			this.fieldFilters.push(new FieldFilterView({
+					el: el,
+					queryParams: this.queryParams,
+					filterName: filterName
+				}));
 		}
 
 	});
@@ -447,29 +562,6 @@
 		        return states;
 		    this.triggerStates[field] = states = values;
 		    return states;
-	    },
-
-	    collectColumns: function () {
-		    var columns = [];
-		    var isActive = this.isActive;
-		    $(".column-trigger").each(function () {
-			    var elem = $(this);
-			    if (isActive(elem)) {
-				    var field = elem.data('value');
-				    columns.push(field);
-			    }
-		    });
-		    this.columns = columns;
-	    },
-	    triggerColumn: function(e) {
-		    e.preventDefault();
-		    var btn = $(e.target);
-		    var field = btn.data('value');
-		    var active = !this.isActive(btn);
-		    this.colorizeTrigger(btn, active);
-		    $(".column.column-"+field).toggle(active);
-		    this.collectColumns();
-		    this.updateLocation()
 	    },
 
 		isActive: function(e) {
@@ -570,7 +662,7 @@
         },
 
         remove: function() {
-            Backbone.View.prototype.remove.apply(this, arguments);
+            Backbone.View.prototype.remove.call(this, arguments);
 
             // disable scroll events subscription
             $(window).off('scroll');
