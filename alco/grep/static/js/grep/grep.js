@@ -77,9 +77,10 @@
 			    else
 			        cur.set({'active': true});
 		    }
-		    this.trigger('filter-changed', 'dates', this.models);
+		    this.trigger('filter-changed', 'dates');
 		    console.log(this.getFilterParams());
 	    },
+
 	    initialize: function (models, options) {
 		    var params = (options|| {}).queryParams || {};
 		    var start_ts = params.start_ts;
@@ -95,6 +96,7 @@
 		    }
 		    models[models.length - 1].set('active', true);
 	    },
+
 		getFilterParams: function() {
 			var active = _.first(this.filter(function (model) {
 				return model.get('active')
@@ -213,7 +215,9 @@
 
 	var DateFilterView = Backbone.View.extend({
 		el: "#dates-trigger-container",
-
+		events: {
+			'keydown #start-time': 'updateTime'
+		},
 		initItemViews: function () {
 			var self = this;
 			return this.$el.find('.dates-trigger').map(function (i, el) {
@@ -228,13 +232,39 @@
 			});
 
 		},
+		getStartTime: function (params) {
+			var start_ts = (params || {})['start_ts'] || '';
+			var tokens = start_ts.split(' ', 2);
+			if (tokens.length > 1)
+				return tokens[1];
+			return '';
+		},
 		initialize: function(options) {
 			var params = (options || {}).queryParams || {};
 			this.itemViews = [];
 			var models = this.initItemViews();
 			this.collection = new DateCollection(models.toArray(),
 				{queryParams: params});
-        }
+			this.time = this.getStartTime(params);
+			this.timeInput = this.$el.find('#start-time');
+			this.timeInput.val(this.time);
+        },
+		updateTime: function(e) {
+			if (e.keyCode != 13)
+				return;
+			e.preventDefault();
+			this.time = this.timeInput.val();
+
+			this.trigger('filter-changed', 'dates');
+		    console.log(this.getFilterParams());
+		},
+		getFilterParams: function() {
+			var params = this.collection.getFilterParams();
+			if(params['start_ts'] && this.time) {
+				params['start_ts'] += ' ' + this.time;
+			}
+			return params;
+		}
 	});
 
 	var GrepView = Backbone.View.extend({
@@ -285,17 +315,7 @@
 	        // prevent of query duplicating on scroll
             $(window).scroll(_.bind(this.checkScroll, this));
         },
-		checkStartTime: function (e) {
-			if (e.keyCode == 13) {
-				var date = $('.dates-trigger[data-active="true"]').first();
-				var time = e.target.value;
-				var value = date.data('value');
-				if (time)
-					value += ' ' + time;
-				this.collection.queryParams['start_ts'] = value;
-				this.reloadCollection();
-			}
-		},
+
 	    updateLocation: function () {
 		    var viewUrl = this.collection.getUrl().replace('api/', '');
 		    if (this.columns){
@@ -347,22 +367,11 @@
 		    this.collectColumns();
 		    this.updateLocation()
 	    },
-	    triggerDates: function(e) {
-		    e.preventDefault();
-		    var btn = $(e.target);
-		    var active = !this.isActive(btn);
-		    var value = btn.data('value');
-		    this.colorizeTrigger($('.dates-trigger'), false);
-		    this.colorizeTrigger(btn, true);
-		    var time = $("#start-time").val();
-		    if (time)
-		        value += ' ' + time;
-		    this.collection.queryParams['start_ts'] = value;
-		    this.reloadCollection();
-	    },
+
 		isActive: function(e) {
 		    return (e.attr('data-active') || "false") == 'true';
 	    },
+
 	    triggerFilter: function(e) {
             e.preventDefault();
 		    var btn = $(e.target);
