@@ -60,7 +60,7 @@
             this.page += 1;
 
             var res = this.fetch({
-                data: this.queryParams
+                data: params
             });
             $.when(res).then(_.bind(function(e, x, y) {
                 this.loading = false;

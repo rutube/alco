@@ -48,7 +48,11 @@
     <div class="hidden">{% spaceless %}<script id="log-template" type="text/template">
         <span title="<%= datetime %>" class="column column-ts"><%= time %></span>
         {% for c in columns %}
-            <span title="{{ c.name }}" class="column column-{{ c.name }} {% if not c.display %}hidden{% endif %}"><%= {{ c.name }} %></span>
+            {% if c.name == 'host' %}
+                <span title="<%= host %>" class="column column-host {% if not c.display %}hidden{% endif %}"><%= shortHost %></span>
+            {% else %}
+                <span title="{{ c.name }}" class="column column-{{ c.name }} {% if not c.display %}hidden{% endif %}"><%= {{ c.name }} %></span>
+            {% endif %}
         {% endfor %}
         <%= logline %></script>
     {% endspaceless %}</div>
