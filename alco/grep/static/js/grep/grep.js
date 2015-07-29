@@ -23,7 +23,7 @@
 		    return result;
 	    },
 	    snippet: function() {
-		    var s = this.get('logline_snippet');
+		    var s = this.get('logline_snippet').replace('<b>', '<ins>').replace('</b>', '</ins>');
 		    return s || this.get('logline');
 	    },
 	    level: function() {
