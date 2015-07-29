@@ -476,6 +476,9 @@
 				queryParams: this.queryParams,
 				pageUrl: options['pageUrl']
 			});
+			this.searchView = new SearchFormView({
+				queryParams: this.queryParams
+			})
 			this.listenTo(filterEvents, 'filter-changed', this.updateQueryParams);
 			this.fieldFilters = [];
 			_.map($('.filter-trigger-container'), this.initFilterView, this);
@@ -485,6 +488,7 @@
 			this.queryParams = {};
 			_.extend(this.queryParams, this.dateFilterView.getFilterParams());
 			_.extend(this.queryParams, this.columnFilterView.getFilterParams());
+			_.extend(this.queryParams, this.searchView.getFilterParams());
 			_.each(this.fieldFilters, function(view){
 				_.extend(this.queryParams, view.getFilterParams());
 
@@ -508,8 +512,38 @@
 
 	});
 
+	var SearchFormView = Backbone.View.extend({
+		name: 'SearchFormView',
+		el: "#search-form",
+		events: {
+			'submit': 'updateSearch'
+		},
+		initialize: function(options) {
+			options = options || {};
+		    var queryParams = options.queryParams || {};
+
+			this.input = this.$el.find('#search-text');
+			this.value = queryParams.search;
+			if (this.value) {
+				this.input.val(this.value);
+			}
+		},
+		updateSearch: function(e){
+			e.preventDefault();
+			this.value = this.input.val();
+			filterEvents.trigger('filter-changed', 'search');
+		},
+		getFilterParams: function(e) {
+			if (!this.value)
+				return {};
+			return {'search': this.value}
+		}
+
+	});
+
     var ResultsView = Backbone.View.extend({
         itemView: LogView,
+	    name: 'ResultsView',
 	    el: "#log-list",
 	    container: "#log-container",
 
