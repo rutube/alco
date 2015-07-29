@@ -15,6 +15,5 @@
 
 
 .logline-found {
-    border-bottom: 1px solid black;
-    font-weight: bold;
+    background-color: #e0f2ff;
 }
