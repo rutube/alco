@@ -314,6 +314,13 @@
 
 	    events: {
 		    'click .logline': 'toggleEllipsis',
+		    'click .column': 'toggleFilter'
+	    },
+	    toggleFilter: function(e) {
+		    var el = $(e.target);
+		    var field = el.data('field');
+		    var value = el.data('value');
+		    filterEvents.trigger("cell-click:" + field, value);
 	    },
 		toggleEllipsis: function(e) {
 			this.$el.toggleClass('log-line-ellipsis');
@@ -345,7 +352,6 @@
 		initialize: function() {
 			this.listenTo(this.model, 'change:' + this.stateField, this.colorize)
 		},
-
 
 		toggleFilter: function(e){
 			e.preventDefault();
@@ -482,7 +488,15 @@
 	var FieldView = BaseFilterItemView.extend({
 		name: 'FieldView',
 		className: 'filter-trigger',
-		nameField: 'field'
+		nameField: 'field',
+
+		markActive: function() {
+			this.model.set(this.stateField, true);
+			console.log(this.model.name + "." + this.model.get(this.nameField) + " now is true");
+			// add separate version of change:active event, because of
+			// modifications of model done by collection
+			this.model.triggerFilterChange({ctrl: false});
+		}
 
 	});
 
@@ -502,14 +516,25 @@
 			BaseFilterView.prototype.initialize.call(this, options);
 			options = options || {};
 			this.filterName = options['filterName'];
+			this.listenTo(filterEvents, 'cell-click:' + this.filterName, this.toggleFilter);
+
+		},
+
+		toggleFilter: function(value) {
+			for (var i in this.itemViews) {
+				if (!this.itemViews.hasOwnProperty(i))
+						continue;
+				var view = this.itemViews[i];
+				if (view.model.get('value') == value) {
+					view.markActive();
+					break;
+				}
+			}
 		}
 	});
 
 	var GrepView = Backbone.View.extend({
 		el: "#grep-view",
-		events: {
-			'click .column': 'toggleFilter'
-		},
 		initialize: function(options) {
 			this.queryParams = options['queryParams'] || {};
 			this.dateFilterView = new DateFilterView({queryParams: this.queryParams});
@@ -526,23 +551,18 @@
 			_.map($('.filter-trigger-container'), this.initFilterView, this);
 		},
 
-		toggleFilter: function(e) {
-			e.preventDefault();
-			var el = $(e.target);
-			var field = el.data('field');
-			var value = el.data('value');
-
-		},
-
-		updateQueryParams: function (what) {
+		constructQueryParams: function () {
 			this.queryParams = {};
 			_.extend(this.queryParams, this.dateFilterView.getFilterParams());
 			_.extend(this.queryParams, this.columnFilterView.getFilterParams());
 			_.extend(this.queryParams, this.searchView.getFilterParams());
-			_.each(this.fieldFilters, function(view){
+			_.each(this.fieldFilters, function (view) {
 				_.extend(this.queryParams, view.getFilterParams());
 
 			}, this);
+		},
+		updateQueryParams: function (what) {
+			this.constructQueryParams();
 			if (what == 'columns') {
 				this.resultsView.updateVisibility(this.queryParams);
 			} else {
@@ -553,11 +573,13 @@
 
 		initFilterView: function(el) {
 			var filterName = $(el).data('field');
-			this.fieldFilters.push(new FieldFilterView({
-					el: el,
-					queryParams: this.queryParams,
-					filterName: filterName
-				}));
+			var view = new FieldFilterView({
+				el: el,
+				queryParams: this.queryParams,
+				filterName: filterName
+			});
+			view.listenTo(this.resultsView, 'cell-click', view.toggleFilter);
+			this.fieldFilters.push(view);
 		}
 
 	});
@@ -599,6 +621,7 @@
 
 	    initCollection: function (queryParams) {
 		    this.search = queryParams['search'];
+		    this.nothingFound = false;
 		    this.loader = $('#log-progress');
 		    if (this.search) {
 			    this.searchCollection = new LogCollection([], queryParams);
@@ -618,9 +641,15 @@
 		    else
 		        this.searchCollection.loadMore();
 	    },
+	    noSearchResults: function () {
+		    this.loader.hide();
+		    this.container.html('<div class="row col12"><div class="h3 text-center">404</div></div>');
+		    this.nothingFound = true;
+
+	    },
 	    startContextLoading: function() {
 		    if (this.searchCollection.models.length == 0) {
-			    this.loader.hide();
+			    this.noSearchResults();
 			    return;
 		    }
 		    var firstResult = this.searchCollection.models[0];
@@ -643,7 +672,7 @@
 	    },
 
 	    updateLocation: function (queryParams) {
-		    var viewUrl = this.url + '?' + $.param(queryParams);
+		    var viewUrl = this.url + '?' + $.param(queryParams).replace(/\+/g, '%20');
 		    window.history.pushState(null, null, viewUrl);
 	    },
 
@@ -676,6 +705,8 @@
 
 	    checkScroll: function() {
             this.loader.hide();
+		    if (this.nothingFound)
+		        return;
 		    var contentOffset = this.container.offset().top,
                 contentHeight = this.container.height(),
                 pageHeight = $(window).height(),
@@ -699,7 +730,6 @@
             });
             this.container.append(itemView.render().el);
         },
-
         render: function() {
             return this;
         },
