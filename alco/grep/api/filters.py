@@ -43,7 +43,7 @@ class SphinxSearchFilter(BaseFilterBackend):
         match_expression = '|'.join(lookup % search_query
                                     for lookup in orm_lookups)
         queryset = queryset.match(match_expression)
-        select = dict(logline_snippet="SNIPPET(logline, %s)")
+        select = dict(logline_snippet="SNIPPET(logline, %s, 'limit=1000000')")
         params = [' '.join(search_terms)]
         return queryset.extra(select=select, select_params=params)
         # FIXME: return qs.options(before_match='<ins>', after_match='</ins>')

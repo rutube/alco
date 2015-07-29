@@ -23,8 +23,10 @@
 		    return result;
 	    },
 	    snippet: function() {
-		    var s = this.get('logline_snippet').replace('<b>', '<ins>').replace('</b>', '</ins>');
-		    return s || this.get('logline');
+		    var s = (this.get('logline_snippet') || this.get('logline'));
+		    s = _.escape(s);
+		    s = s.replace(/&lt;b&gt;/g, '<ins>').replace(/&lt;\/b&gt;/g, '</ins>');
+		    return s;
 	    },
 	    level: function() {
 		    return this.get('js')['levelname'];
@@ -229,17 +231,18 @@
         model: LogModel,
         url: '/api/grep/',
 
-        initialize: function(queryParams) {
+        initialize: function(models, queryParams) {
             this.page = 1;
             this.logger_index = queryParams['logger_index'] || 'logger';
 	        delete queryParams['logger_index'];
 	        if (queryParams['columns'])
 	            this.columns = queryParams['columns'].split(',');
-	        delete queryParams['columns']
+	        delete queryParams['columns'];
 	        this.url += this.logger_index + '/';
             this.has_next = true;
             this.loading = false;
             this.queryParams = queryParams || {};
+	        this.search = queryParams['search'];
         },
 
         parse: function(resp) {
@@ -247,8 +250,28 @@
             return resp['results'];
         },
 
+		updateMatches: function() {
+			if (this.search) {
+				this.matchedIds = this.pluck('id');
+				this.lastKnownMatch = _.last(this.matchedIds);
+
+			}
+		},
+
+		checkMatch: function(id) {
+			if (!this.search) {
+				return null;
+			}
+			if (_.contains(this.matchedIds, id)) {
+				if (id >= this.lastKnownMatch) {
+					this.loadMore();
+				}
+				return this.get(id);
+			}
+		},
+
 	    reset: function(models, options) {
-		    Backbone.Collection.prototype.reset.apply(this, [models, options]);
+		    Backbone.Collection.prototype.reset.call(this, models, options);
 		    this.has_next = true;
 		    this.page = 1;
 	    },
@@ -272,6 +295,8 @@
             });
             $.when(res).then(_.bind(function(e, x, y) {
                 this.loading = false;
+	            if (this.search)
+		            this.updateMatches();
 	            this.trigger("loaded");
             }, this));
             return res;
@@ -285,8 +310,14 @@
 
     var LogView = Backbone.View.extend({
         tagName: 'div',
-        className: 'log-line',
+        className: 'log-line log-line-ellipsis',
 
+	    events: {
+		    'click .logline': 'toggleEllipsis'
+	    },
+		toggleEllipsis: function(e) {
+			this.$el.toggleClass('log-line-ellipsis');
+		},
         template: _.template($('#log-template').html()),
 
         initialize: function() {
@@ -295,7 +326,7 @@
 
         render: function() {
             this.$el.html(this.template(this.model.toJSON()));
-	        if (this.model.get('logline_snippet').indexOf("<b>") > -1) {
+	        if ((this.model.get('logline_snippet') || '').indexOf("<b>") > -1) {
 		        this.$el.toggleClass('logline-found', true);
 	        }
             return this;
@@ -533,7 +564,7 @@
 			this.input = this.$el.find('#search-text');
 			this.value = queryParams.search;
 			if (this.value) {
-				this.input.val(this.value);
+				this.input.val(_.unescape(this.value));
 			}
 		},
 		updateSearch: function(e){
@@ -556,9 +587,27 @@
 	    container: "#log-container",
 
 	    initCollection: function (queryParams) {
-		    this.collection = new LogCollection(queryParams);
+		    this.search = queryParams['search'];
+		    if (this.search) {
+			    this.searchCollection = new LogCollection([], queryParams);
+			    this.listenToOnce(this.searchCollection, "loaded", this.startContextLoading);
+			    this.listenTo(this.searchCollection, "loaded", this.checkScroll);
+			    queryParams = _.omit(queryParams, 'search');
+		    } else {
+			    this.searchCollection = null;
+		    }
+
+		    this.collection = new LogCollection([], queryParams);
 		    this.listenTo(this.collection, "add", this.appendItem);
 		    this.listenTo(this.collection, "loaded", this.checkScroll);
+		    if (!this.search)
+		        this.collection.loadMore();
+		    else
+		        this.searchCollection.loadMore();
+	    },
+	    startContextLoading: function() {
+		    var firstResult = this.searchCollection.models[0];
+		    this.collection.queryParams['start_ts'] = firstResult.get('datetime').replace('T', ' ');
 		    this.collection.loadMore();
 	    },
 	    initialize: function(options) {
@@ -612,11 +661,17 @@
             var triggerPoint = 200;
 
             if (contentOffset + contentHeight - scrollTop - pageHeight < triggerPoint) {
-                this.collection.loadMore();
+	            if (!this.search ||!this.searchCollection.loading)
+                    this.collection.loadMore();
             }
         },
 
         appendItem: function(item) {
+	        if (this.search) {
+		        var match = this.searchCollection.checkMatch(item.get('id'));
+		        console.log('checking ' + item.get('id') + ': ' + (match || 'false'));
+		        if (match) item = match;
+	        }
             var itemView = new this.itemView({
                 model: item
             });

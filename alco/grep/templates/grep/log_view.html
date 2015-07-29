@@ -51,11 +51,11 @@
             {% if c.name == 'host' %}
                 <span title="<%= host %>" class="column column-toggle column-host"
                         <% if (columns && !_.contains(columns, '{{ c.name }}')) { %> style="display: none;"<% } %>
-                        ><%= shortHost %></span>
+                        ><%- shortHost %></span>
             {% else %}
                 <span title="{{ c.name }}" class="column column-toggle column-{{ c.name }}"
                         <% if (columns && !_.contains(columns, '{{ c.name }}')) { %> style="display: none;"<% } %>
-                        ><%= {{ c.name }} %></span>
+                        ><%- {{ c.name }} %></span>
             {% endif %}
         {% endfor %}
         <span class="logline">
