@@ -313,7 +313,7 @@
         className: 'log-line log-line-ellipsis',
 
 	    events: {
-		    'click .logline': 'toggleEllipsis'
+		    'click .logline': 'toggleEllipsis',
 	    },
 		toggleEllipsis: function(e) {
 			this.$el.toggleClass('log-line-ellipsis');
@@ -507,6 +507,9 @@
 
 	var GrepView = Backbone.View.extend({
 		el: "#grep-view",
+		events: {
+			'click .column': 'toggleFilter'
+		},
 		initialize: function(options) {
 			this.queryParams = options['queryParams'] || {};
 			this.dateFilterView = new DateFilterView({queryParams: this.queryParams});
@@ -517,10 +520,18 @@
 			});
 			this.searchView = new SearchFormView({
 				queryParams: this.queryParams
-			})
+			});
 			this.listenTo(filterEvents, 'filter-changed', this.updateQueryParams);
 			this.fieldFilters = [];
 			_.map($('.filter-trigger-container'), this.initFilterView, this);
+		},
+
+		toggleFilter: function(e) {
+			e.preventDefault();
+			var el = $(e.target);
+			var field = el.data('field');
+			var value = el.data('value');
+
 		},
 
 		updateQueryParams: function (what) {
@@ -588,6 +599,7 @@
 
 	    initCollection: function (queryParams) {
 		    this.search = queryParams['search'];
+		    this.loader = $('#log-progress');
 		    if (this.search) {
 			    this.searchCollection = new LogCollection([], queryParams);
 			    this.listenToOnce(this.searchCollection, "loaded", this.startContextLoading);
@@ -600,12 +612,17 @@
 		    this.collection = new LogCollection([], queryParams);
 		    this.listenTo(this.collection, "add", this.appendItem);
 		    this.listenTo(this.collection, "loaded", this.checkScroll);
+		    this.listenTo(this.collection, 'request', this.showLoader);
 		    if (!this.search)
 		        this.collection.loadMore();
 		    else
 		        this.searchCollection.loadMore();
 	    },
 	    startContextLoading: function() {
+		    if (this.searchCollection.models.length == 0) {
+			    this.loader.hide();
+			    return;
+		    }
 		    var firstResult = this.searchCollection.models[0];
 		    this.collection.queryParams['start_ts'] = firstResult.get('datetime').replace('T', ' ');
 		    this.collection.loadMore();
@@ -620,6 +637,10 @@
 	        // prevent of query duplicating on scroll
             $(window).scroll(_.bind(this.checkScroll, this));
         },
+
+	    showLoader: function(options) {
+		    this.loader.show();
+	    },
 
 	    updateLocation: function (queryParams) {
 		    var viewUrl = this.url + '?' + $.param(queryParams);
@@ -654,7 +675,8 @@
 	    },
 
 	    checkScroll: function() {
-            var contentOffset = this.container.offset().top,
+            this.loader.hide();
+		    var contentOffset = this.container.offset().top,
                 contentHeight = this.container.height(),
                 pageHeight = $(window).height(),
                 scrollTop = $(window).scrollTop();
@@ -663,7 +685,7 @@
             if (contentOffset + contentHeight - scrollTop - pageHeight < triggerPoint) {
 	            if (!this.search ||!this.searchCollection.loading)
                     this.collection.loadMore();
-            }
+	        }
         },
 
         appendItem: function(item) {
