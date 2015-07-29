@@ -6,3 +6,10 @@
 #log-container:before {
     content: ""
 }
+
+.logline b {
+    background: yellow;
+}
+.logline-found .column-ts{
+    background: yellow;
+}

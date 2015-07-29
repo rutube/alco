@@ -19,7 +19,12 @@
 		    result['shortHost'] = this.shortHost();
 		    result['level'] = this.level();
 		    result['columns'] = this.collection.columns;
+		    result['logline'] = this.snippet();
 		    return result;
+	    },
+	    snippet: function() {
+		    var s = this.get('logline_snippet');
+		    return s || this.get('logline');
 	    },
 	    level: function() {
 		    return this.get('js')['levelname'];
@@ -290,6 +295,9 @@
 
         render: function() {
             this.$el.html(this.template(this.model.toJSON()));
+	        if (this.model.get('logline_snippet').indexOf("<b>") > -1) {
+		        this.$el.toggleClass('logline-found', true);
+	        }
             return this;
         }
     });

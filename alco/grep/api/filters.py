@@ -21,7 +21,7 @@ class SphinxSearchFilter(BaseFilterBackend):
         params = request.query_params.get(self.search_param, '')
         if not params:
             return []
-        return map(sphinx_escape, params.replace(',', ' ').split())
+        return list(map(sphinx_escape, params.replace(',', ' ').split()))
 
     def construct_search(self, field_name):
         return '@%s ("%%s")' % field_name
@@ -43,7 +43,7 @@ class SphinxSearchFilter(BaseFilterBackend):
         match_expression = '|'.join(lookup % search_query
                                     for lookup in orm_lookups)
         queryset = queryset.match(match_expression)
-        return queryset
+        return queryset.extra(select=dict(logline_snippet="SNIPPET(logline, %s)"), select_params=[' '.join(search_terms)])
 
 
 class JSONFieldFilter(BaseFilterBackend):

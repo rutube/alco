@@ -17,8 +17,12 @@ class LogBaseSerializer(ModelSerializer):
 
     js = JSONSerializerField()
     datetime = serializers.SerializerMethodField()
+    logline_snippet = serializers.SerializerMethodField()
     
     serializer_field_mapping = mapping
 
     def get_datetime(self, obj):
         return obj.datetime.isoformat()
+
+    def get_logline_snippet(self, obj):
+        return getattr(obj, 'logline_snippet', None)
