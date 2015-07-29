@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='alco',
-    version='0.0.14',
+    version='0.1.0',
     packages=['alco',
               'alco.grep',
               'alco.grep.api',
