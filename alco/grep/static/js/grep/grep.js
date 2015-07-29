@@ -18,6 +18,7 @@
 		    result['time'] = this.time();
 		    result['shortHost'] = this.shortHost();
 		    result['level'] = this.level();
+		    result['columns'] = this.collection.columns;
 		    return result;
 	    },
 	    level: function() {
@@ -95,7 +96,7 @@
 
 	    initialize: function (models, options) {
 		    var params = (options|| {}).queryParams || {};
-		    var columns = params.columns;
+		    var columns = params['columns'];
 		    if (columns)
 			    columns = columns.split(',');
 
@@ -227,6 +228,9 @@
             this.page = 1;
             this.logger_index = queryParams['logger_index'] || 'logger';
 	        delete queryParams['logger_index'];
+	        if (queryParams['columns'])
+	            this.columns = queryParams['columns'].split(',');
+	        delete queryParams['columns']
 	        this.url += this.logger_index + '/';
             this.has_next = true;
             this.loading = false;
@@ -477,8 +481,7 @@
 			_.map($('.filter-trigger-container'), this.initFilterView, this);
 		},
 
-		updateQueryParams: function (args) {
-			console.log(args);
+		updateQueryParams: function (what) {
 			this.queryParams = {};
 			_.extend(this.queryParams, this.dateFilterView.getFilterParams());
 			_.extend(this.queryParams, this.columnFilterView.getFilterParams());
@@ -486,7 +489,11 @@
 				_.extend(this.queryParams, view.getFilterParams());
 
 			}, this);
-			this.resultsView.reloadCollection(this.queryParams);
+			if (what == 'columns') {
+				this.resultsView.updateVisibility(this.queryParams);
+			} else {
+				this.resultsView.reloadCollection(this.queryParams);
+			}
 			console.log(this.queryParams);
 		},
 
@@ -526,6 +533,24 @@
 	    updateLocation: function (queryParams) {
 		    var viewUrl = this.url + '?' + $.param(queryParams);
 		    window.history.pushState(null, null, viewUrl);
+	    },
+
+	    updateVisibility: function(queryParams) {
+		    var columns = queryParams['columns'];
+
+		    if (columns) {
+			    $('.column-toggle ').hide();
+			    columns = columns.split(',');
+			    this.collection.columns = columns;
+			    for(var i=0; i< columns.length; i++) {
+				    var col = columns[i];
+					$('.column-' + col).show();
+			    }
+		    } else {
+			    $('.column-toggle ').show();
+			    this.collection.columns = null;
+		    }
+
 	    },
 
 	    reloadCollection: function (queryParams) {
@@ -576,7 +601,7 @@
             'grep/:logger_index/': 'grep'
         },
 
-	    parseQueryString: function parseQueryString(queryString){
+	    parseQueryString: function (queryString){
 		    var params = {};
 		    if(queryString){
 		        _.each(
@@ -586,7 +611,7 @@
 		                    var val = undefined;
 		                    if(aux.length == 2)
 		                        val = aux[1];
-		                    o[aux[0]] = val;
+		                    o[aux[0]] = decodeURIComponent(val);
 		                }
 		                return o;
 		            }),

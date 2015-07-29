@@ -49,9 +49,13 @@
         <span title="<%= datetime %>" class="column column-ts"><%= time %></span>
         {% for c in columns %}
             {% if c.name == 'host' %}
-                <span title="<%= host %>" class="column column-host {% if not c.display %}hidden{% endif %}"><%= shortHost %></span>
+                <span title="<%= host %>" class="column column-toggle column-host"
+                        <% if (columns && !_.contains(columns, '{{ c.name }}')) { %> style="display: none;"<% } %>
+                        ><%= shortHost %></span>
             {% else %}
-                <span title="{{ c.name }}" class="column column-{{ c.name }} {% if not c.display %}hidden{% endif %}"><%= {{ c.name }} %></span>
+                <span title="{{ c.name }}" class="column column-toggle column-{{ c.name }}"
+                        <% if (columns && !_.contains(columns, '{{ c.name }}')) { %> style="display: none;"<% } %>
+                        ><%= {{ c.name }} %></span>
             {% endif %}
         {% endfor %}
         <%= logline %></script>
