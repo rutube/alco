@@ -349,7 +349,9 @@
 		stateField: 'active',
 		nameField: 'name',
 
-		initialize: function() {
+		initialize: function(options) {
+			var params = (options||{})['params'];
+			this.colorize(this.model);
 			this.listenTo(this.model, 'change:' + this.stateField, this.colorize)
 		},
 
@@ -389,11 +391,13 @@
 
 		initialize: function (options) {
 			this.itemViews = [];
-			var models = this.initItemViews();
+			var models = this.initItemViews((options|| {})['queryParams']);
 			this.collection = new this.collection(models, options);
 		},
 
-		initItemViews: function () {
+		initItemViews: function (params) {
+			params = params || {};
+
 			var self = this;
 			return _.map(this.$el.find(this.itemSelector), function (el) {
 				var elem = $(el);
@@ -405,7 +409,7 @@
 					data[modelKey] = elem.data(elemKey);
 				}
 				var model = new this.model(data);
-				var view = new this.itemView({el: el, model: model});
+				var view = new this.itemView({el: el, model: model, params: params});
 				self.itemViews.push(view);
 				return model;
 			}, this);
@@ -537,11 +541,12 @@
 		el: "#grep-view",
 		initialize: function(options) {
 			this.queryParams = options['queryParams'] || {};
+			this.pageUrl = options['pageUrl'];
 			this.dateFilterView = new DateFilterView({queryParams: this.queryParams});
 			this.columnFilterView = new ColumnFilterView({queryParams: this.queryParams});
 			this.resultsView = new ResultsView({
 				queryParams: this.queryParams,
-				pageUrl: options['pageUrl']
+				pageUrl: this.pageUrl
 			});
 			this.searchView = new SearchFormView({
 				queryParams: this.queryParams
@@ -563,12 +568,16 @@
 		},
 		updateQueryParams: function (what) {
 			this.constructQueryParams();
+			var viewUrl = this.pageUrl + '?' + $.param(this.queryParams).replace(/\+/g, '%20');
+			console.log(viewUrl);
+
 			if (what == 'columns') {
 				this.resultsView.updateVisibility(this.queryParams);
+				router.navigate(viewUrl)
 			} else {
-				this.resultsView.reloadCollection(this.queryParams);
+			    router.navigate(viewUrl, {trigger: true});
+			//	this.resultsView.reloadCollection(this.queryParams);
 			}
-			console.log(this.queryParams);
 		},
 
 		initFilterView: function(el) {
@@ -580,7 +589,22 @@
 			});
 			view.listenTo(this.resultsView, 'cell-click', view.toggleFilter);
 			this.fieldFilters.push(view);
-		}
+		},
+
+
+        remove: function() {
+	        this.stopListening();
+	        this.resultsView.stopListening();
+            this.dateFilterView.stopListening();
+            this.columnFilterView.stopListening();
+	        _.each(this.fieldFilters, function(view){
+		        view.stopListening();
+	        });
+            // !!! Backbone.View.prototype.remove.call(this, arguments);
+			this.resultsView.reset();
+            // disable scroll events subscription
+            $(window).off('scroll');
+        }
 
 	});
 
@@ -671,11 +695,6 @@
 		    this.loader.show();
 	    },
 
-	    updateLocation: function (queryParams) {
-		    var viewUrl = this.url + '?' + $.param(queryParams).replace(/\+/g, '%20');
-		    window.history.pushState(null, null, viewUrl);
-	    },
-
 	    updateVisibility: function(queryParams) {
 		    var columns = queryParams['columns'];
 
@@ -693,14 +712,18 @@
 		    }
 
 	    },
+	    //
+	    //reloadCollection: function (queryParams) {
+		 //   this.collection.reset();
+		 //   this.stopListening(this.collection, 'add');
+		 //   this.stopListening(this.collection, 'loaded');
+		 //   this.container.html('');
+		 //   this.initCollection(queryParams);
+	    //},
 
-	    reloadCollection: function (queryParams) {
-		    this.collection.reset();
-		    this.stopListening(this.collection, 'add');
-		    this.stopListening(this.collection, 'loaded');
+	    reset: function() {
 		    this.container.html('');
-		    this.initCollection(queryParams);
-		    this.updateLocation(queryParams);
+		    this.loader.show();
 	    },
 
 	    checkScroll: function() {
@@ -732,15 +755,7 @@
         },
         render: function() {
             return this;
-        },
-
-        remove: function() {
-            Backbone.View.prototype.remove.call(this, arguments);
-
-            // disable scroll events subscription
-            $(window).off('scroll');
         }
-
     });
 
     /* routers */
