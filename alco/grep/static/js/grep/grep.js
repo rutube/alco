@@ -211,7 +211,8 @@
 			if (visible.length == 0 || visible.length == this.models.length)
 				return {};
 		    var result = {};
-		    result[visible[0].get('field')] = visible.map(function(model) {
+		    var suffix = (visible.length > 1)? '__in': '';
+		    result[visible[0].get('field') + suffix] = visible.map(function(model) {
 					return model.get('value')
 				}).join(',');
 			return result;
@@ -467,10 +468,15 @@
 			this.queryParams = options['queryParams'] || {};
 			this.dateFilterView = new DateFilterView({queryParams: this.queryParams});
 			this.columnFilterView = new ColumnFilterView({queryParams: this.queryParams});
+			this.resultsView = new ResultsView({
+				queryParams: this.queryParams,
+				pageUrl: options['pageUrl']
+			});
 			this.listenTo(filterEvents, 'filter-changed', this.updateQueryParams);
 			this.fieldFilters = [];
 			_.map($('.filter-trigger-container'), this.initFilterView, this);
 		},
+
 		updateQueryParams: function (args) {
 			console.log(args);
 			this.queryParams = {};
@@ -480,7 +486,7 @@
 				_.extend(this.queryParams, view.getFilterParams());
 
 			}, this);
-
+			this.resultsView.reloadCollection(this.queryParams);
 			console.log(this.queryParams);
 		},
 
@@ -497,142 +503,41 @@
 
     var ResultsView = Backbone.View.extend({
         itemView: LogView,
-
-	    events: {
-		    "submit #search-form": "submitSearch",
-		    "click .filter-trigger": "triggerFilter"
-		    //"click .column-trigger": "triggerColumn",
-		    //"keydown #start-time": "checkStartTime"
-	    },
-
-	    el: "#grep-view",
+	    el: "#log-list",
 	    container: "#log-container",
-	    triggerStates: {},
-	    columns: [],
 
-	    countTriggers: function () {
-		    var states = {};
-		    $(".filter-trigger").each(function(){
-			    var e = $(this);
-			    var field = e.attr('data-field');
-			    if(!states[field]) {
-				    states[field] = {active: 0, inactive: 0}
-			    }
-			    states[field]['active']++;
-
-		    });
-
-		    return states;
+	    initCollection: function (queryParams) {
+		    this.collection = new LogCollection(queryParams);
+		    this.listenTo(this.collection, "add", this.appendItem);
+		    this.listenTo(this.collection, "loaded", this.checkScroll);
+		    this.collection.loadMore();
 	    },
-	    initialize: function() {
-            this.listenTo(this.collection, "add", this.appendItem);
-            this.listenTo(this.collection, "loaded", this.checkScroll);
-            this.listenTo(this.collection, "update", this.appendPageNumber);
-			this.container = $(this.container);
-	        this.triggerStates = this.countTriggers();
-		    this.collectColumns();
+	    initialize: function(options) {
+		    options = options || {};
+		    this.url = options.pageUrl;
+		    var queryParams = options.queryParams;
+		    this.initCollection(queryParams);
+		    this.container = $(this.container);
+		    this.container.html('');
 	        // prevent of query duplicating on scroll
             $(window).scroll(_.bind(this.checkScroll, this));
         },
 
-	    updateLocation: function () {
-		    var viewUrl = this.collection.getUrl().replace('api/', '');
-		    if (this.columns){
-			    var sep = (_.keys(this.collection.queryParams).length > 0)?'&':'';
-			    viewUrl += sep + 'columns=' + this.columns.join(',');
-		    }
+	    updateLocation: function (queryParams) {
+		    var viewUrl = this.url + '?' + $.param(queryParams);
 		    window.history.pushState(null, null, viewUrl);
 	    },
-	    reloadCollection: function () {
+
+	    reloadCollection: function (queryParams) {
 		    this.collection.reset();
+		    this.stopListening(this.collection, 'add');
+		    this.stopListening(this.collection, 'loaded');
 		    this.container.html('');
-		    this.updateLocation();
-		    this.collection.loadMore();
+		    this.initCollection(queryParams);
+		    this.updateLocation(queryParams);
 	    },
 
-	    submitSearch: function(e) {
-		    e.preventDefault();
-		    this.collection.queryParams['search'] = $('#search-text').val();
-		    this.reloadCollection();
-	    },
-
-	    triggerState: function(field, values) {
-		    var states = this.triggerStates[field];
-		    if (!values)
-		        return states;
-		    this.triggerStates[field] = states = values;
-		    return states;
-	    },
-
-		isActive: function(e) {
-		    return (e.attr('data-active') || "false") == 'true';
-	    },
-
-	    triggerFilter: function(e) {
-            e.preventDefault();
-		    var btn = $(e.target);
-		    var field = btn.data('field');
-		    var value = btn.data('value');
-		    var state = this.triggerState(field);
-		    var activeCount = state['active'];
-		    var inactiveCount = state['inactive'];
-		    var active = this.isActive(btn);
-			var allItems = $('.filter-trigger[data-field="' + field  + '"]');
-
-		    if (!window.event.ctrlKey) {
-			    // leave only one selected item.
-			    var total = activeCount + inactiveCount;
-			    this.triggerState(field, {
-				    active: 1,
-				    inactive: total - 1
-			    });
-			    this.colorizeTrigger(allItems, false);
-			    this.colorizeTrigger(btn, true)
-		    } else {
-			    // Ctrl+Click handler
-			    if (active && activeCount == 1) {
-				    // Was single active, become inactive
-				    // All values are unselected now -that is meaningless.
-				    // Activate all items.
-				    this.triggerState(field, {
-					    active: total,
-					    inactive: 0
-				    });
-				    this.colorizeTrigger(allItems, true);
-			    } else {
-
-				    var d = (active)? 1: -1;
-			        this.triggerState(field, {
-				        active: activeCount - d,
-			            inactive: inactiveCount + d
-			        });
-				    // Just toggle clicked value
-				    this.colorizeTrigger(btn, !active);
-			    }
-		    }
-		    // collect all filter values
-			var filter = [];
-		    var isActive = this.isActive;
-		    if (this.triggerState(field).inactive != 0) {
-			    allItems.each(function () {
-				    var e = $(this);
-				    if (!isActive(e))
-					    return;
-				    filter.push(e.data('value'));
-			    });
-		    }
-
-            delete this.collection.queryParams[field + '__in'];
-		    delete this.collection.queryParams[field];
-
-		    if (filter.length > 1) {
-			    this.collection.queryParams[field + '__in'] = filter.join(',');
-		    } else if (filter.length == 1 ) {
-		        this.collection.queryParams[field] = filter[0];
-		    }
-            this.reloadCollection();
-	    },
-        checkScroll: function() {
+	    checkScroll: function() {
             var contentOffset = this.container.offset().top,
                 contentHeight = this.container.height(),
                 pageHeight = $(window).height(),
@@ -651,13 +556,7 @@
             this.container.append(itemView.render().el);
         },
 
-        appendPageNumber: function() {
-            var p = this.collection.page - 1;
-            this.$el.append(p + '<hr>');
-        },
-
         render: function() {
-            // FIXME
             return this;
         },
 
@@ -701,25 +600,18 @@
 
         grep: function(logger_index) {
 			var query_string = window.location.search.substring(1);
+
             if (this.view) {
                 this.view.remove();
             }
 
-            var filters = {
-                logger_index: logger_index
-            };
-
 	        var queryParams = this.parseQueryString(query_string);
-	        _.extend(filters, queryParams);
-			delete filters['columns'];
-            var collection = new LogCollection(filters);
+
             this.view = new GrepView({
-                collection: collection,
+				pageUrl: window.location.pathname,
 	            queryParams: queryParams
             });
-            $('#log-container').html(''); //xxx
 
-            collection.loadMore(); // get first page
         }
     });
 

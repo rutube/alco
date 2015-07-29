@@ -2,3 +2,7 @@
     margin-right: 5px;
     font-weight: bold;
 }
+
+#log-container:before {
+    content: ""
+}
