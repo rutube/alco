@@ -25,7 +25,7 @@
 	    snippet: function() {
 		    var s = (this.get('logline_snippet') || this.get('logline'));
 		    s = _.escape(s);
-		    s = s.replace(/&lt;b&gt;/g, '<ins>').replace(/&lt;\/b&gt;/g, '</ins>');
+		    s = s.replace(/&lt;b&gt;/g, '<span class="match label label-info">').replace(/&lt;\/b&gt;/g, '</span>');
 		    return s;
 	    },
 	    level: function() {
@@ -312,21 +312,38 @@
 
 	    events: {
 		    'click .logline': 'toggleEllipsis',
-		    'click .column': 'toggleFilter'
+		    'click .column': 'toggleFilter',
+		    'click a.context': 'toggleContext'
 	    },
-	    toggleFilter: function(e) {
+
+	    template: _.template($('#log-template').html()),
+
+        toggleFilter: function(e) {
 		    var el = $(e.target);
 		    var field = el.data('field');
 		    var value = el.data('value');
 		    filterEvents.trigger("cell-click:" + field, value);
 	    },
+
 		toggleEllipsis: function(e) {
 			this.$el.toggleClass('log-row-ellipsis');
 		},
-        template: _.template($('#log-template').html()),
+
+	    toggleContext: function(e) {
+		    e.preventDefault();
+		    this.$el.filter('pre.context').removeClass('active');
+		    var pill = $(e.target);
+		    var activate = !pill.hasClass('active');
+		    pill.toggleClass('active', activate);
+		    var ctx = pill.data('context');
+		    var tab = this.$el.find('pre.context[data-context="' + ctx + '"]');
+		    tab.toggleClass("active", activate);
+		    this.$el.find('div.tab-content').toggle(activate);
+	    },
 
         initialize: function() {
             this.listenTo(this.model, 'change', this.render);
+
         },
 
         render: function() {

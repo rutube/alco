@@ -25,3 +25,51 @@
 .logline-found {
     background-color: #e0f2ff;
 }
+
+.context-pills {
+    /*display:inline;*/
+    /*padding: 0;*/
+}
+.context-area {
+    /*display: inline-block;*/
+}
+
+#log-container {
+    font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+    padding: 9.5px;
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.42857143;
+    color: #333;
+    word-break: break-all;
+    word-wrap: break-word;
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+pre.context {
+    display: none;
+}
+pre.context.active {
+    display: block;
+}
+
+a.context {
+    font-size: 12px;
+    font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+    font-weight: normal;
+    padding: 1px;
+    background-color: #f0ad4e;
+    margin: 0 3px;
+}
+a.context.active {
+    background-color: #5cb85c;
+}
+
+span.match.label {
+    font-size: 12px;
+    font-family: Menlo,Monaco,Consolas,"Courier New",monospace;
+    font-weight: normal;
+    padding: 2px 0 0 0;
+}
+

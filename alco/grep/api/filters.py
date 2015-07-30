@@ -13,7 +13,7 @@ class SphinxSearchFilter(BaseFilterBackend):
     # The URL query parameter used for the search.
     search_param = api_settings.SEARCH_PARAM
 
-    def get_search_terms(self, request):
+    def get_search_terms(self, request, escape=True):
         """
         Search terms are set by a ?search=... query parameter,
         and may be comma and/or whitespace delimited.
@@ -21,7 +21,9 @@ class SphinxSearchFilter(BaseFilterBackend):
         params = request.query_params.get(self.search_param, '')
         if not params:
             return []
-        return list(map(sphinx_escape, params.replace(',', ' ').split()))
+        if escape:
+            return list(map(sphinx_escape, params.replace(',', ' ').split()))
+        return params.replace(',', ' ').split()
 
     def construct_search(self, field_name):
         return '@%s ("%%s")' % field_name
@@ -44,7 +46,7 @@ class SphinxSearchFilter(BaseFilterBackend):
                                     for lookup in orm_lookups)
         queryset = queryset.match(match_expression)
         select = dict(logline_snippet="SNIPPET(logline, %s, 'limit=1000000')")
-        params = [' '.join(search_terms)]
+        params = [' '.join(self.get_search_terms(request, escape=False))]
         return queryset.extra(select=select, select_params=params)
         # FIXME: return qs.options(before_match='<ins>', after_match='</ins>')
 

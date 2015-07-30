@@ -33,8 +33,8 @@
                     </form>
                 </div>
             </div>
-            <pre class="panel-body" id="log-container">
-            </pre>
+            <div class="panel-body" id="log-container">
+            </div>
             <div class="progress" id="log-progress">
                 <div class="progress-bar progress-bar-striped active"
                      role="progressbar"
@@ -45,23 +45,46 @@
             </div>
         </div>
     </div>
-    <div class="hidden">{% lineless %}<script id="log-template" type="text/template">
-        <span title="<%= datetime %>" class="column column-ts"> <%= time %> </span>
-        {% for c in columns %}
-            {% if c.name == 'host' %}
-                <span data-field="host" data-value="<%- host %>" title="<%= host %>" class="column column-toggle column-host"
-                        <% if (columns && !_.contains(columns, '{{ c.name }}')) { %> style="display: none;"<% } %>
-                        > <%- shortHost %> </span>
-            {% else %}
-                <span data-field="{{ c.name }}" data-value="<%-{{ c.name }}%>"
-                      title="{{ c.name }}" class="column column-toggle column-{{ c.name }}"
-                        <% if (columns && !_.contains(columns, '{{ c.name }}')) { %> style="display: none;"<% } %>
-                        > <%- {{ c.name }} %> </span>
-            {% endif %}
-        {% endfor %}
-        <span class="logline">
-        <%= logline %></span></script>
-    {% endlineless %}</div>
+    <div class="hidden">
+        {% lineless %}<script id="log-template" type="text/template">
+            <span title="<%= datetime %>" class="column column-ts"> <%= time %> </span>
+            {% for c in columns %}
+                {% if not c.context %}
+
+                    {% if c.name == 'host' %}
+                        <span data-field="host" data-value="<%- host %>" title="<%= host %>" class="column column-toggle column-host"
+                                <% if (columns && !_.contains(columns, '{{ c.name }}')) { %> style="display: none;"<% } %>
+                                > <%- shortHost %> </span>
+                    {% else %}
+                        <span data-field="{{ c.name }}" data-value="<%-{{ c.name }}%>"
+                              title="{{ c.name }}" class="column column-toggle column-{{ c.name }}"
+                                <% if (columns && !_.contains(columns, '{{ c.name }}')) { %> style="display: none;"<% } %>
+                                > <%- {{ c.name }} %> </span>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+            <span class="logline">
+            <%= logline %></span>
+            {% spaceless %}
+            <span class="context-pills">
+                {% for c in columns %}
+                    {% if c.context %}
+                        <% if({{ c.name }}) { %>
+                        <a href="#{{ c.name }}" class="label context" data-context="{{ c.name }}">{{ c.name }}</a>
+                        <% } %>
+                    {% endif %}
+                {% endfor %}
+            </span>
+
+            <div class="context-area">
+                {% for c in columns %}
+                    {% if c.context %}
+                        <pre class="context" data-context="{{ c.name }}" id="{{ c.name }}"> <%- {{ c.name }} %> </pre>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endspaceless %}
+    </script>{% endlineless %}</div>
 {% endblock %}
 
 {% block footer %}

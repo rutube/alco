@@ -47,6 +47,7 @@ class LoggerColumn(models.Model):
     name = models.CharField(max_length=100)
     filtered = models.BooleanField(default=False)
     display = models.BooleanField(default=True)
+    context = models.BooleanField(default=False)
 
     def __str__(self):
         return '%s(%s)' % (self.name, self.index)
