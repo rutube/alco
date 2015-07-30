@@ -1,23 +1,17 @@
 # coding: utf-8
 
 # $Id: $
-from datetime import datetime
 from django.utils.functional import cached_property
 import django_filters
 from rest_framework import filters as rf_filters
-from rest_framework.fields import DateField, DateTimeField
+from rest_framework.fields import DateTimeField
 from rest_framework.generics import ListAPIView
-from rest_framework.pagination import PageNumberPagination
-from alco.collector.defaults import ALCO_SETTINGS
-from alco.collector.models import LoggerIndex
 
+from alco.collector.models import LoggerIndex
 from alco.grep.api import filters
+from alco.grep.api.pagination import LogPaginator
 from alco.grep.models import create_index_model
 from alco.grep.api.serializers import LogBaseSerializer
-
-
-class LogPaginator(PageNumberPagination):
-    page_size = ALCO_SETTINGS['LOG_PAGE_SIZE']
 
 
 class GrepView(ListAPIView):
