@@ -2,7 +2,6 @@
 
 # $Id: $
 from django.utils import six
-import django_filters
 from rest_framework.filters import BaseFilterBackend
 from rest_framework.settings import api_settings
 
@@ -19,7 +18,7 @@ class SphinxSearchFilter(BaseFilterBackend):
         and may be comma and/or whitespace delimited.
         """
         params = request.query_params.get(self.search_param, '')
-        if not params:
+        if not params or params == " ":
             return []
         if escape:
             return list(map(sphinx_escape, params.replace(',', ' ').split()))

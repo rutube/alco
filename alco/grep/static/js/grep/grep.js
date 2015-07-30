@@ -609,15 +609,21 @@
 
         remove: function() {
 	        this.stopListening();
-	        this.resultsView.stopListening();
-            this.dateFilterView.stopListening();
-            this.columnFilterView.stopListening();
+	        this.fieldFilters.push(
+	            this.dateFilterView,
+	            this.columnFilterView,
+		        this.searchView,
+		        this.resultsView
+	        )
+
 	        _.each(this.fieldFilters, function(view){
 		        view.stopListening();
+		        view.undelegateEvents();
 	        });
-            // !!! Backbone.View.prototype.remove.call(this, arguments);
-			this.resultsView.reset();
-            // disable scroll events subscription
+	        this.fieldFilters = null;
+	        // !!! Backbone.View.prototype.remove.call(this, arguments);
+
+			// disable scroll events subscription
             $(window).off('scroll');
         }
 
@@ -634,7 +640,8 @@
 		    var queryParams = options.queryParams || {};
 
 			this.input = this.$el.find('#search-text');
-			this.value = queryParams.search;
+			this.value = (queryParams.filters || '') + ' ' + (queryParams.search|| '');
+			this.value = this.value.replace(/^\s*([^\s]+)\s*$/, '$1');
 			if (this.value) {
 				this.input.val(_.unescape(this.value));
 			}
@@ -647,7 +654,25 @@
 		getFilterParams: function(e) {
 			if (!this.value)
 				return {};
-			return {'search': this.value}
+			re = /@([\w_]+)=(("[^\"]+")|([^\s]+))/g;
+			filters = this.value.match(re) || [];
+			var result = {};
+			var filterString = '';
+			for (var i=0;i<filters.length; i++) {
+				var filter = filters[i].substring(1).split('=', 2);
+				var key = filter[0];
+				result[key] = filter[1].replace(/^"(.+)"$/, '$1');
+				filterString += ' ' + filters[i];
+			}
+			if ($.isEmptyObject(result)) {
+				return {'search': this.value}
+			}
+			result['filters'] = filterString;
+			var search = this.value.replace(/@([\w_]+)=(("[^\"]+")|([^\s]+))/g, '');
+			search = search.replace(/\s+/g, ' ');
+			if (search && search != ' ')
+				result['search'] = search;
+			return result;
 		}
 
 	});
