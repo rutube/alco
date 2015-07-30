@@ -45,23 +45,23 @@
             </div>
         </div>
     </div>
-    <div class="hidden">{% spaceless %}<script id="log-template" type="text/template">
-        <span title="<%= datetime %>" class="column column-ts"><%= time %></span>
+    <div class="hidden">{% lineless %}<script id="log-template" type="text/template">
+        <span title="<%= datetime %>" class="column column-ts"> <%= time %> </span>
         {% for c in columns %}
             {% if c.name == 'host' %}
                 <span data-field="host" data-value="<%- host %>" title="<%= host %>" class="column column-toggle column-host"
                         <% if (columns && !_.contains(columns, '{{ c.name }}')) { %> style="display: none;"<% } %>
-                        ><%- shortHost %></span>
+                        > <%- shortHost %> </span>
             {% else %}
                 <span data-field="{{ c.name }}" data-value="<%-{{ c.name }}%>"
                       title="{{ c.name }}" class="column column-toggle column-{{ c.name }}"
                         <% if (columns && !_.contains(columns, '{{ c.name }}')) { %> style="display: none;"<% } %>
-                        ><%- {{ c.name }} %></span>
+                        > <%- {{ c.name }} %> </span>
             {% endif %}
         {% endfor %}
         <span class="logline">
         <%= logline %></span></script>
-    {% endspaceless %}</div>
+    {% endlineless %}</div>
 {% endblock %}
 
 {% block footer %}

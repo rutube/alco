@@ -1,13 +1,21 @@
 .column {
-    margin-right: 5px;
     font-weight: bold;
+    font-size: 12px;
+}
+
+.logline {
+    font-size: 12px;
 }
 
 #log-container:before {
     content: ""
 }
 
-.log-line.log-line-ellipsis {
+.log-row {
+    /*font-size: 0;*/
+}
+
+.log-row.log-row-ellipsis {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

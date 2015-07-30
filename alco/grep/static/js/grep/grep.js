@@ -308,7 +308,7 @@
 
     var LogView = Backbone.View.extend({
         tagName: 'div',
-        className: 'log-line log-line-ellipsis',
+        className: 'log-row log-row-ellipsis',
 
 	    events: {
 		    'click .logline': 'toggleEllipsis',
@@ -321,7 +321,7 @@
 		    filterEvents.trigger("cell-click:" + field, value);
 	    },
 		toggleEllipsis: function(e) {
-			this.$el.toggleClass('log-line-ellipsis');
+			this.$el.toggleClass('log-row-ellipsis');
 		},
         template: _.template($('#log-template').html()),
 
