@@ -1,9 +1,11 @@
 # coding: utf-8
 
 # $Id: $
+from datetime import datetime
 from django.utils.functional import cached_property
 import django_filters
 from rest_framework import filters as rf_filters
+from rest_framework.fields import DateField, DateTimeField
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
 from alco.collector.defaults import ALCO_SETTINGS
@@ -44,7 +46,14 @@ class GrepView(ListAPIView):
 
     @cached_property
     def log_model(self):
-        return create_index_model(self.index)
+        start_ts = self.request.GET.get('start_ts') or ''
+        try:
+            f = DateTimeField()
+            distr = f.to_internal_value(start_ts).strftime('%Y%m%d')
+        except Exception:
+            distr = None
+
+        return create_index_model(self.index, distr=distr)
 
     def get_serializer_class(self):
         class Meta:

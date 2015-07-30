@@ -34,10 +34,15 @@ def create_char_field(c):
     return models.CharField(max_length=255, db_column='js.%s' % c)
 
 
-def create_index_model(index):
+def create_index_model(index, distr=None):
     model_name = "%sLog" % index.name.title()
+    if distr:
+        table = '%s_%s_distr' % (index.name, distr)
+    else:
+        table = index.name
+
     class Meta:
-        db_table = index.name
+        db_table = table
 
     columns = index.loggercolumn_set.values_list('name', flat=True)
 

@@ -21,10 +21,11 @@ else:
     execfile(settings_path)
 
 # noinspection PyUnresolvedReferences
+ALCO_HOST = ALCO_SETTINGS['SPHINX_CONF_URL']
+
 r = urlopen(os.path.join(ALCO_HOST, 'collector/sphinx.conf'))
 config = r.read().decode('utf-8')
 
-# noinspection PyUnresolvedReferences
 r = urlopen(os.path.join(ALCO_HOST, 'api/collector/indices/?format=json'))
 indices = json.loads(r.read().decode('utf-8'))
 for idx in indices:
@@ -32,7 +33,10 @@ for idx in indices:
     for dt in idx['index_names']:
         path = os.path.join("/data/sphinx/", name, dt)
         if not os.path.exists(path):
-            os.makedirs(path)
+            try:
+                os.makedirs(path)
+            except OSError:
+                pass
 
 print(config)
 

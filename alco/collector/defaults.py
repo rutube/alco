@@ -22,7 +22,7 @@ ALCO_SETTINGS = {
         'db': 0
     },
     # url for fetching sphinx.conf dynamically
-    'SPHINX_CONF_URL': 'http://127.0.0.1:8000/collector/sphinx.conf',
+    'SPHINX_CONF_URL': 'http://127.0.0.1:8000/',
     # name of django.db.connection for SphinxSearch
     'SPHINX_DATABASE_NAME': 'sphinx',
     # number of results in log view API
