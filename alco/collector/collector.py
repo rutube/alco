@@ -12,7 +12,7 @@ from django.core.signals import request_started, request_finished
 from django.db import connections
 import redis
 from amqp import Connection
-from django.conf import settings
+from alco.collector.defaults import ALCO_SETTINGS
 
 from alco.collector import keys
 
@@ -32,9 +32,9 @@ class Collector(object):
         self.cancelled = True
 
     def connect(self):
-        self.amqp = Connection(**settings.RABBITMQ)
-        self.redis = redis.Redis(settings.REDIS_HOST, db=settings.REDIS_DB)
-        self.conn = connections[settings.SPHINX_DATABASE_NAME]
+        self.amqp = Connection(**ALCO_SETTINGS['RABBITMQ'])
+        self.redis = redis.Redis(**ALCO_SETTINGS['REDIS'])
+        self.conn = connections[ALCO_SETTINGS['SPHINX_DATABASE_NAME']]
 
     def __call__(self, *args, **kwargs):
         try:

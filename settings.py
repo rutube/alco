@@ -78,21 +78,6 @@ DATABASE_ROUTERS = (
     'sphinxsearch.routers.SphinxRouter',
 )
 
-# log messaging server
-RABBITMQ = {
-    'host': '127.0.0.1',
-    'userid': 'guest',
-    'password': 'guest',
-    'virtual_host': '/'
-}
-
-# redis for generating primary key sequences
-REDIS_HOST = '127.0.0.1'
-REDIS_DB = 0
-
-# url for fetching sphinx.conf dynamically
-ALCO_HOST = "http://192.168.70.104:8000/"
-
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/
 

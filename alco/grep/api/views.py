@@ -6,6 +6,7 @@ import django_filters
 from rest_framework import filters as rf_filters
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
+from alco.collector.defaults import ALCO_SETTINGS
 from alco.collector.models import LoggerIndex
 
 from alco.grep.api import filters
@@ -14,7 +15,7 @@ from alco.grep.api.serializers import LogBaseSerializer
 
 
 class LogPaginator(PageNumberPagination):
-    page_size = 20
+    page_size = ALCO_SETTINGS['LOG_PAGE_SIZE']
 
 
 class GrepView(ListAPIView):

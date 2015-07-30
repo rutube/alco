@@ -1,15 +1,14 @@
 # coding: utf-8
 
 # $Id: $
-from collections import OrderedDict
-from django.conf import settings
 from django.views.generic import DetailView
 import redis
 
 from alco.collector import keys
+from alco.collector.defaults import ALCO_SETTINGS
 from alco.collector.models import LoggerIndex
 
-client = redis.Redis(settings.REDIS_HOST, db=settings.REDIS_DB)
+client = redis.Redis(**ALCO_SETTINGS['REDIS'])
 
 
 class GrepView(DetailView):

@@ -234,10 +234,8 @@
         initialize: function(models, queryParams) {
             this.page = 1;
             this.logger_index = queryParams['logger_index'] || 'logger';
-	        delete queryParams['logger_index'];
 	        if (queryParams['columns'])
 	            this.columns = queryParams['columns'].split(',');
-	        delete queryParams['columns'];
 	        this.url += this.logger_index + '/';
             this.has_next = true;
             this.loading = false;
@@ -702,6 +700,8 @@
 			    $('.column-toggle ').hide();
 			    columns = columns.split(',');
 			    this.collection.columns = columns;
+			    if (this.searchCollection)
+			        this.searchCollection.columns = columns;
 			    for(var i=0; i< columns.length; i++) {
 				    var col = columns[i];
 					$('.column-' + col).show();
