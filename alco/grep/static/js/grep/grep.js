@@ -633,45 +633,103 @@
 		name: 'SearchFormView',
 		el: "#search-form",
 		events: {
-			'submit': 'updateSearch'
+			'submit': 'updateSearch',
+			'click .filter-toggler': 'toggleSearchFilter'
 		},
 		initialize: function(options) {
 			options = options || {};
 		    var queryParams = options.queryParams || {};
 
 			this.input = this.$el.find('#search-text');
-			this.value = (queryParams.filters || '') + ' ' + (queryParams.search|| '');
-			this.value = this.value.replace(/^\s*([^\s]+)\s*$/, '$1');
-			if (this.value) {
-				this.input.val(_.unescape(this.value));
+
+			this.fields = [];
+			_.each(this.$el.find('.filter-toggler'), function(el) {
+				var field = $(el).val();
+				this.fields.push(field)
+			}, this);
+			this.filters = {};
+
+			for (var i=0;i<this.fields.length; i++) {
+				var field = this.fields[i];
+				if (queryParams[field] && this.fields.indexOf(field) > -1) {
+					this.filters[field] = queryParams[field];
+				}
 			}
+
+			this.search = _.unescape(queryParams.search).replace(/^\s*(.+)\s*$/, '$1');
+			this.updateInput();
+		},
+		updateInput: function() {
+			if (!this.search && $.isEmptyObject(this.filters)) {
+				this.input.val('');
+			}
+
+			var result = this.search || '';
+			for (var i=0;i<this.fields.length; i++) {
+				var field = this.fields[i];
+				var value = this.filters[field];
+				var active = false;
+				if (value !== null && typeof value !== 'undefined') {
+					result += ' @' + field + '=' + value;
+					active = true;
+				}
+				var button = this.$el.find('.filter-toggler[value="' + field + '"]');
+				button.toggleClass('btn-success', active);
+				button.toggleClass('btn-default', !active);
+			}
+			this.input.val(result.replace(/^\s*(.+)\s*$/, '$1'));
+			this.input.focus();
+		},
+		toggleSearchFilter: function(e) {
+			var button = $(e.target);
+			var active = button.hasClass('btn-success');
+			button.toggleClass('btn-success', !active);
+			button.toggleClass('btn-default', active);
+			var field = button.val();
+
+			if (!active) {
+				this.filters[field] = ''
+			} else {
+				delete this.filters[field]
+			}
+			this.updateInput();
 		},
 		updateSearch: function(e){
 			e.preventDefault();
-			this.value = this.input.val();
+			this.parseInput();
 			filterEvents.trigger('filter-changed', 'search');
 		},
-		getFilterParams: function(e) {
-			if (!this.value)
-				return {};
+		parseInput: function() {
+			var value = this.input.val();
+			if (!value) {
+				this.filters = {};
+				this.search = null;
+				return;
+			}
 			re = /@([\w_]+)=(("[^\"]+")|([^\s]+))/g;
-			filters = this.value.match(re) || [];
-			var result = {};
-			var filterString = '';
+			filters = value.match(re) || [];
+			this.filters = {};
 			for (var i=0;i<filters.length; i++) {
 				var filter = filters[i].substring(1).split('=', 2);
 				var key = filter[0];
-				result[key] = filter[1].replace(/^"(.+)"$/, '$1');
-				filterString += ' ' + filters[i];
+				if (this.fields.indexOf(key) == -1)
+					continue;
+				this.filters[key] = filter[1].replace(/^"(.+)"$/, '$1');
 			}
-			if ($.isEmptyObject(result)) {
-				return {'search': this.value}
-			}
-			result['filters'] = filterString;
-			var search = this.value.replace(/@([\w_]+)=(("[^\"]+")|([^\s]+))/g, '');
+
+			var search = value.replace(/@([\w_]+)=(("[^\"]+")|([^\s]+))/g, '');
 			search = search.replace(/\s+/g, ' ');
 			if (search && search != ' ')
-				result['search'] = search;
+				this.search = search;
+			else
+				this.search = ''
+		},
+
+		getFilterParams: function(e) {
+			var result = {};
+			_.extend(result, this.filters);
+			if (this.search)
+				result['search'] = this.search;
 			return result;
 		}
 

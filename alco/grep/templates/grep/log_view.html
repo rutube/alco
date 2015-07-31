@@ -18,20 +18,26 @@
 
         <div id="log-list" class="col-lg-10">
             <div class="panel panel-default">
-                <div class="panel-heading">
-                    <form id="search-form">
+                <form id="search-form">
+                    <div class="panel-heading">
                         <div class="input-group">
                             <input type="text" class="form-control"
                                    name="search"
                                    id="search-text"
                                    placeholder="Search for...">
-                  <span class="input-group-btn">
-                    <input class="btn btn-default" type="submit" value="grep"
-                           id="search-btn">
-                  </span>
+                            <span class="input-group-btn">
+                                <input class="btn btn-default" type="submit" value="grep" id="search-btn">
+                            </span>
                         </div>
-                    </form>
-                </div>
+                        <div class="btn-group" id="filter-toggles">
+                        {% for c in columns %}
+                            {% if not c.filtered %}
+                                <button class="btn btn-xs btn-default filter-toggler" value="{{ c.name }}">{{ c.name }}</button>
+                            {% endif %}
+                        {% endfor %}
+                        </div>
+                    </div>
+                </form>
             </div>
             <div class="panel-body" id="log-container">
             </div>
