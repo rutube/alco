@@ -7,7 +7,18 @@ from django.db import models
 from jsonfield import JSONField
 
 from sphinxsearch.models import SphinxModel, SphinxDateTimeField
-from alco.collector.models import LoggerIndex
+from alco.collector.models import LoggerIndex, LoggerColumn
+
+
+class Shortcut(models.Model):
+    name = models.CharField(max_length=30, primary_key=True)
+    description = models.CharField(max_length=255, blank=True, default='')
+    url = models.CharField(max_length=255)
+    index = models.ForeignKey(LoggerIndex)
+    default_field = models.ForeignKey(LoggerColumn, blank=True, null=True)
+
+    def __str__(self):
+        return self.name
 
 
 class LogBase(SphinxModel):
@@ -50,3 +61,5 @@ def create_index_model(index, distr=None):
     fields.update({'Meta': Meta, '__module__': __name__})
     Log = type(model_name, (LogBase,), fields)
     return Log
+
+
