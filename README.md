@@ -1,6 +1,9 @@
 ALCO - Autonomous Log Collector and Observer
 ============================================
 
+[![PyPI version](https://badge.fury.io/py/alco.svg)](http://badge.fury.io/py/alco)
+
+
 What's the problem
 ------------------
 
@@ -51,41 +54,42 @@ Setup
 1. You need to configure logcollect in analyzed projects (see [README](https://github.com/tumb1er/logcollect#tips-for-configuration)). If RabbitMQ admin interface shows non-zero message flow in `logstash` exchange - "It works" :-)
 
 2. Install alco and it's requirements from PyPi
-  ```sh
-  pip install alco
-  ```
+
+    ```sh
+    pip install alco
+    ```
 
 3. Next, create django project, add `sphinxsearch` database connection and configure `settings.py` to enable alco applications
 
-  ```python
-  # For SphinxRouter
-  SPHINX_DATABASE_NAME = 'sphinx'
-
-  DATABASES[SPHINX_DATABASE_NAME] = {
+    ```python
+    # For SphinxRouter
+    SPHINX_DATABASE_NAME = 'sphinx'
+    
+    DATABASES[SPHINX_DATABASE_NAME] = {
           'ENGINE': 'sphinxsearch.backend.sphinx',
           'HOST': '127.0.0.1',
           'PORT': 9306,
       }
-  }
-
-  # Auto routing log models to SphinxSearch database
-  DATABASE_ROUTERS = (
+    }
+    
+    # Auto routing log models to SphinxSearch database
+    DATABASE_ROUTERS = (
       'sphinxsearch.routers.SphinxRouter',
-  )
-
-  INSTALLED_APPS += [
+    )
+    
+    INSTALLED_APPS += [
     'rest_framework', # for API to work
     'alco.collector',
     'alco.grep'
-  ]
-
-  ROOT_URLCONF = 'alco.urls'
-  ```
+    ]
+    
+    ROOT_URLCONF = 'alco.urls'
+    ```
 
 4. Configure ALCO resources in `settings.py`:
 
-  ```python
-  ALCO_SETTINGS = {
+    ```python
+    ALCO_SETTINGS = {
       # log messaging server
       'RABBITMQ': {
           'host': '127.0.0.1',
@@ -93,7 +97,7 @@ Setup
           'password': 'guest',
           'virtual_host': '/'
       },
-
+    
       # redis server
       'REDIS': {
           'host': '127.0.0.1',
@@ -105,8 +109,8 @@ Setup
       'SPHINX_DATABASE_NAME': 'sphinx',
       # number of results in log view API
       'LOG_PAGE_SIZE': 100
-  }
-  ```
+    }
+    ```
 
 5. Run `syncdb` or better `migrate` management command to create database tables.
 
@@ -114,44 +118,45 @@ Setup
 
 7. Created directories for sphinxsearch:
 
-  ```
-  /var/log/sphinx/
-  /var/run/sphinx/
-  /data/sphinx/
-  ```
+    ```
+    /var/log/sphinx/
+    /var/run/sphinx/
+    /data/sphinx/
+    ```
 
 8. Next, configure sphinxsearch to use generated config:
 
-  ```sh
-
-  searchd -c sphinx_conf.py
-  ```
-
-  `sphinx_conf.py` is a simple script that imports `alco.sphinx_conf` module which fetches generated `sphinx.conf` from alco http api and created directories for SphinxSearch indices:
-
-  ```python
-  #!/data/alco/virtualenv/bin/python
-
-  # coding: utf-8
-  import os
-  os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'settings')
-
-  from alco import sphinx_conf
-  ```
+    ```sh
+    
+    searchd -c sphinx_conf.py
+    ```
+    
+    `sphinx_conf.py` is a simple script that imports `alco.sphinx_conf` module which fetches generated `sphinx.conf` from alco http api and created directories for SphinxSearch indices:
+    
+    ```python
+    #!/data/alco/virtualenv/bin/python
+    
+    # coding: utf-8
+    import os
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'settings')
+    
+    from alco import sphinx_conf
+    ```
 
 9. Run log collectors:
 
-  ```sh
-  python manage.py start_collectors --no-daemon
-  ```
-
-  If it shows number of collected messages periodically - then log collecting is set up correctly.
+    ```sh
+    python manage.py start_collectors --no-daemon
+    ```
+    
+    If it shows number of collected messages periodically - then log collecting is set up correctly.
 
 10. Configure system services to start subsystems automatically:
-  * nginx or apache http server
-  * django uwsgi backend
-  * alco collectors (`start_collectors` management command)
-  * sphinxsearch, redis, default database for Django
+
+    * nginx or apache http server
+    * django uwsgi backend
+    * alco collectors (`start_collectors` management command)
+    * sphinxsearch, redis, default database for Django
 
 11. Open `http://127.0.0.1:8000/grep/<logger_name>/` to read and search logs online.
 

@@ -1,3 +1,4 @@
+include LICENSE.txt README.md
 recursive-include alco/collector/templates *
 recursive-include alco/grep/templates *
 recursive-include alco/grep/static *

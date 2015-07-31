@@ -1,8 +1,16 @@
 from setuptools import setup
 
+try:
+    from pypandoc import convert
+    read_md = lambda f: convert(f, 'rst')
+except ImportError:
+    print("warning: pypandoc module not found, could not convert Markdown to RST")
+    read_md = lambda f: open(f, 'r').read()
+
 setup(
     name='alco',
-    version='0.4.0',
+    version='0.5.0',
+    long_description=read_md('README.md'),
     packages=['alco',
               'alco.grep',
               'alco.grep.api',
@@ -32,9 +40,9 @@ setup(
         'python-daemon',
         'redis',
         'amqp',
-        # 'django_sphinxsearch',
+        'django_sphinxsearch',
     ],
-    license='Beer license',
+    license='Beerware',
     author='tumbler',
     author_email='zimbler@gmail.com',
     description='Autonomous Log Collector and Observer'
