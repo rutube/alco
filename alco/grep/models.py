@@ -48,9 +48,9 @@ def create_char_field(c):
 def create_index_model(index, distr=None):
     model_name = "%sLog" % index.name.title()
     if distr:
-        table = '%s_%s_distr' % (index.name, distr)
+        table = str('%s_%s_distr' % (index.name, distr))
     else:
-        table = index.name
+        table = str(index.name)
 
     class Meta:
         db_table = table

@@ -129,7 +129,7 @@ class Collector(object):
 
         existing = [c.name for c in existing]
         filtered = [c.name for c in filtered]
-        new_values = set(columns.keys() - set(existing))
+        new_values = set(columns.keys()) - set(existing)
 
         for column in filtered:
             values = columns.get(column)
