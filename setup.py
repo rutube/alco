@@ -9,7 +9,7 @@ except ImportError:
 
 setup(
     name='alco',
-    version='0.5.0',
+    version='0.5.1',
     long_description=read_md('README.md'),
     packages=['alco',
               'alco.grep',
@@ -35,7 +35,7 @@ setup(
         'Django>=1.8',
         'djangorestframework>=3.1',
         'dateutils',
-        'django-filter',
+        'django-filter>=0.10.0',
         'jsonfield',
         'python-daemon',
         'redis',
