@@ -18,7 +18,7 @@ logger = getLogger(__name__)
 
 class Command(BaseCommand):
     def __init__(self, stdout=None, stderr=None, no_color=False):
-        super().__init__(stdout=None, stderr=None, no_color=False)
+        super(Command, self).__init__(stdout=None, stderr=None, no_color=False)
         self.processes = {}
         self.started = False
 
