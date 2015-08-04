@@ -10,6 +10,7 @@ import sys
 import dateutil.parser
 from django.core.signals import request_started, request_finished
 from django.db import connections
+from django.utils import six
 import redis
 from amqp import Connection
 from alco.collector.defaults import ALCO_SETTINGS
@@ -116,7 +117,7 @@ class Collector(object):
             # values for caching in redis
             for key, value in data['data'].items():
                 columns.setdefault(key, set())
-                if not isinstance(value, (bool, int, float, str)):
+                if not isinstance(value, (bool, int, float, six.text_type)):
                     continue
                 columns[key].add(value)
 
