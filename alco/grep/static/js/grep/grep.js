@@ -896,6 +896,7 @@
 
 	        var queryParams = this.parseQueryString(query_string);
 
+            queryParams['logger_index'] = logger_index;
             this.view = new GrepView({
 				pageUrl: window.location.pathname,
 	            queryParams: queryParams
