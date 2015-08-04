@@ -41,7 +41,8 @@ class Collector(object):
             self.connect()
             self.declare_queue()
             channel = self.amqp.channel()
-            channel.basic_consume("logstash", callback=self.process_message, no_ack=True)
+            channel.basic_consume(self.index.queue_name,
+                                  callback=self.process_message, no_ack=True)
             start = time.time()
             while not self.cancelled:
                 channel.wait()
@@ -80,7 +81,7 @@ class Collector(object):
 
     def declare_queue(self):
         channel = self.amqp.channel()
-        channel.exchange_declare(exchange=self.exchange, type='fanout',
+        channel.exchange_declare(exchange=self.exchange, type='topic',
                                  durable=True, auto_delete=False)
         channel.queue_declare(self.index.queue_name, durable=True,
                               auto_delete=False)
