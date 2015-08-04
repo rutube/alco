@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
+import re
 
 import sys
 import os
 import json
+import shutil
 
 settings_module = os.environ.get('DJANGO_SETTINGS_MODULE', 'settings')
 settings_module = settings_module.replace('.', '/')
@@ -30,13 +32,27 @@ r = urlopen(os.path.join(ALCO_HOST, 'api/collector/indices/?format=json'))
 indices = json.loads(r.read().decode('utf-8'))
 for idx in indices:
     name = idx['name']
+    to_delete = []
     for dt in idx['index_names']:
+        # create dir for new indices
         path = os.path.join("/data/sphinx/", name, dt)
         if not os.path.exists(path):
             try:
                 os.makedirs(path)
             except OSError:
                 pass
+
+    # collect all old index dirs for logger
+    local_dir = os.path.join("/data/sphinx", name)
+    for dt in os.listdir(local_dir):
+        if not re.match(r'^[\d]{8}$', dt):
+            continue
+        if dt not in idx['index_names']:
+            to_delete.append(dt)
+
+    # remove all old index dirs except one latedt
+    for dt in sorted(to_delete)[:-1]:
+        shutil.rmtree(os.path.join(local_dir, dt), ignore_errors=True)
 
 print(config)
 
