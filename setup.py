@@ -22,7 +22,7 @@ setup(
               'alco.collector.management.commands',
               'alco.collector.migrations',
     ],
-    url='https://github.com/tumb1er/alco',
+    url='https://github.com/rutube/alco',
     include_package_data=True,
     package_data={
         'alco': [
