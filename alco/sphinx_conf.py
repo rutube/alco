@@ -13,6 +13,7 @@ settings_file = settings_module + '.py'
 settings_path = os.path.join(os.getcwd(), settings_file)
 
 if sys.version_info[0] > 2:
+    # noinspection PyUnresolvedReferences
     from urllib.request import urlopen
     with open(settings_path, 'rb') as f:
         exec(compile(f.read(), settings_file, "exec"))
@@ -55,4 +56,3 @@ for idx in indices:
         shutil.rmtree(os.path.join(local_dir, dt), ignore_errors=True)
 
 print(config)
-
