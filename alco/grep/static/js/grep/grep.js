@@ -374,10 +374,11 @@
 			e.preventDefault();
 			var active = !this.model.get(this.stateField);
 			this.model.set(this.stateField, active);
-			console.log(this.model.name + "." + this.model.get(this.nameField) + " now is " + active);
+			// console.log(this.model.name + "." + this.model.get(this.nameField) + " now is " + active);
+
 			// add separate version of change:active event, because of
 			// modifications of model done by collection
-			this.model.triggerFilterChange({ctrl: window.event.ctrlKey});
+			this.model.triggerFilterChange({ctrl: filterEvents.ctrlKey});
 		},
 
 		colorize: function(model) {
@@ -511,7 +512,8 @@
 
 		markActive: function() {
 			this.model.set(this.stateField, true);
-			console.log(this.model.name + "." + this.model.get(this.nameField) + " now is true");
+			// console.log(this.model.name + "." + this.model.get(this.nameField) + " now is true");
+
 			// add separate version of change:active event, because of
 			// modifications of model done by collection
 			this.model.triggerFilterChange({ctrl: false});
@@ -554,7 +556,12 @@
 
 	var GrepView = Backbone.View.extend({
 		el: "#grep-view",
+
 		initialize: function(options) {
+			var focused = $('body');
+			focused.on('keydown', this.updateSpecialKeys);
+			focused.on('keyup', this.updateSpecialKeys);
+
 			this.queryParams = options['queryParams'] || {};
 			this.pageUrl = options['pageUrl'];
 			this.dateFilterView = new DateFilterView({queryParams: this.queryParams});
@@ -571,6 +578,12 @@
 			_.map($('.filter-trigger-container'), this.initFilterView, this);
 		},
 
+		updateSpecialKeys: function(e) {
+			filterEvents.ctrlKey = e.ctrlKey;
+			filterEvents.altKey = e.altKey;
+			filterEvents.shiftKey = e.shiftKey;
+		},
+
 		constructQueryParams: function () {
 			this.queryParams = {};
 			_.extend(this.queryParams, this.dateFilterView.getFilterParams());
@@ -584,7 +597,7 @@
 		updateQueryParams: function (what) {
 			this.constructQueryParams();
 			var viewUrl = this.pageUrl + '?' + $.param(this.queryParams).replace(/\+/g, '%20');
-			console.log(viewUrl);
+			// console.log(viewUrl);
 
 			if (what == 'columns') {
 				this.resultsView.updateVisibility(this.queryParams);
@@ -625,6 +638,10 @@
 
 			// disable scroll events subscription
             $(window).off('scroll');
+
+	        var focused = $('body');
+			focused.unbind('keydown');
+			focused.unbind('keyup');
         }
 
 	});
@@ -678,7 +695,6 @@
 				button.toggleClass('btn-default', !active);
 			}
 			this.input.val(result.replace(/^\s*(.+)\s*$/, '$1'));
-			this.input.focus();
 		},
 		toggleSearchFilter: function(e) {
 			var button = $(e.target);
@@ -845,7 +861,7 @@
         appendItem: function(item) {
 	        if (this.search) {
 		        var match = this.searchCollection.checkMatch(item.get('id'));
-		        console.log('checking ' + item.get('id') + ': ' + (match || 'false'));
+		        // console.log('checking ' + item.get('id') + ': ' + (match || 'false'));
 		        if (match) item = match;
 	        }
             var itemView = new this.itemView({
