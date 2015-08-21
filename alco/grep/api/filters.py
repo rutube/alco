@@ -1,10 +1,11 @@
 # coding: utf-8
 
-# $Id: $
+from collections import OrderedDict
+
 from django.utils import six
 from rest_framework.filters import BaseFilterBackend
 from rest_framework.settings import api_settings
-
+# noinspection PyPackageRequirements
 from sphinxsearch.utils import sphinx_escape
 
 
@@ -24,7 +25,8 @@ class SphinxSearchFilter(BaseFilterBackend):
             return list(map(sphinx_escape, params.replace(',', ' ').split()))
         return params.replace(',', ' ').split()
 
-    def construct_search(self, field_name):
+    @staticmethod
+    def construct_search(field_name):
         return '@%s ("%%s")' % field_name
 
     def filter_queryset(self, request, queryset, view):
@@ -52,7 +54,8 @@ class SphinxSearchFilter(BaseFilterBackend):
 
 class JSONFieldFilter(BaseFilterBackend):
 
-    def get_json_fields(self, request, view):
+    @staticmethod
+    def get_json_fields(request, view):
         json_fields = getattr(view, 'get_json_fields', None)
         if callable(json_fields):
             json_fields = json_fields(request)
@@ -70,16 +73,43 @@ class JSONFieldFilter(BaseFilterBackend):
             if not isinstance(value, (list, tuple)):
                 value = [value]
             all_values.update(value)
-        #match = ' | '.join('"%s"' % sphinx_escape(value) for value in all_values)
-        queryset = queryset.filter(**lookups)
+
+        extra_lookups = OrderedDict()
+        extra_params = []
+        extra_where = []
+        for lookup, values in lookups.items():
+            field = lookup.split('__')[0]
+            numeric = []
+            for v in values:
+                try:
+                    numeric.append(int(v))
+                except ValueError:
+                    continue
+            stub = ','.join(['%s' * len(values)])
+            extra_lookups['__%s_str' % lookup] = 'IN(js.%s, %s)' % (field, stub)
+            extra_params.extend(values)
+            if numeric:
+                stub = ','.join(['%s' * len(numeric)])
+                extra_lookups['__%s_int' % lookup] = 'IN(js.%s, %s)' % (field,
+                                                                        stub)
+                extra_params.extend(numeric)
+                extra_where.append('(__%s_str = 1 OR __%s_int = 1)'
+                                   % (lookup, lookup))
+            else:
+                extra_where.append('__%s_str = 1' % lookup)
+        queryset = queryset.extra(select=extra_lookups,
+                                  select_params=extra_params,
+                                  where=extra_where,
+                                  params=[])
         return queryset
 
-    def get_lookups(self, json_fields, request):
+    @staticmethod
+    def get_lookups(json_fields, request):
         lookups = {}
         for key in json_fields:
-            value = request.query_params.get(key +'__in')
+            value = request.query_params.get(key + '__in')
             if value is None:
                 continue
-            lookups[key +'__in'] = value.split(',')
+            lookups[key + '__in'] = value.split(',')
 
         return lookups
