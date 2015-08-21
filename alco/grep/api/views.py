@@ -30,7 +30,7 @@ class GrepView(ListAPIView):
 
             class Meta:
                 model = self.log_model
-                fields = ['ts'] + self.index.field_names
+                fields = ['ts']
 
         return TimestampFilter
 
@@ -61,7 +61,7 @@ class GrepView(ListAPIView):
         return self.log_model.objects.order_by('ts', 'ms', 'seq')
 
     def get_json_fields(self, request):
-        fields = self.index.filtered_fields
+        fields = self.index.visible_fields
         result = []
         for key, value in request.GET.items():
             field = key.split('__')[0]

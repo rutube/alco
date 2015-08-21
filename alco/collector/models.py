@@ -37,6 +37,11 @@ class LoggerIndex(models.Model):
         return list(self.loggercolumn_set.filter(
             filtered=True).values_list('name', flat=True))
 
+    @property
+    def visible_fields(self):
+        return list(self.loggercolumn_set.filter(
+            display=True).values_list('name', flat=True))
+
     def __str__(self):
         return self.name
 
