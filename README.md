@@ -110,6 +110,19 @@ Setup
       # number of results in log view API
       'LOG_PAGE_SIZE': 100
     }
+    
+    # override defaults for sphinx.conf template
+    ALCO_SPHINX_CONF = {
+      # local index definition defaults override 
+      'index': {
+        'min_word_len': 8
+      },
+      # searchd section defaults override
+      'searchd': {
+        'dist_threads': 8
+      }
+    }
+    
     ```
 
 5. Run `syncdb` or better `migrate` management command to create database tables.

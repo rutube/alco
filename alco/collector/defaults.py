@@ -34,3 +34,33 @@ ALCO_SETTINGS = {
 _custom = getattr(settings, 'ALCO_SETTINGS', {})
 for k, v in _custom.items():
     ALCO_SETTINGS[k] = v
+
+SPHINX_CONFIG = {
+    'index': {
+        'morphology': 'none',
+        'min_word_len': 4,
+    },
+    'searchd': {
+        'listen': '9306:mysql41',
+        'log': '/var/log/sphinxsearch/searchd.log',
+        'query_log': '/var/log/sphinxsearch/query.log',
+        'read_timeout': 5,
+        'client_timeout': 300,
+        'max_children': 30,
+        'dist_threads': 4,
+        'ondisk_attrs_default': 'pool',
+        'persistent_connections_limit': 30,
+        'pid_file': '/var/run/sphinxsearch/searchd.pid',
+        'seamless_rotate': 1,
+        'preopen_indexes': 1,
+        'unlink_old': 1,
+        'binlog_path': '',  # disable logging
+    }
+}
+
+# Allow to override sphinx.conf variables from project django conf.
+
+_custom = getattr(settings, 'ALCO_SPHINX_CONF', {})
+for section in SPHINX_CONFIG.keys():
+    for k, v in _custom.get(section, {}).items():
+        SPHINX_CONFIG[section][k] = v

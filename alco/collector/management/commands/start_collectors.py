@@ -13,12 +13,13 @@ import signal
 from alco.collector.collector import Collector
 from alco.collector.models import LoggerIndex
 
-logger = getLogger(__name__)
+logger = getLogger('alco.collector')
 
 
 class Command(BaseCommand):
     def __init__(self, stdout=None, stderr=None, no_color=False):
-        super(Command, self).__init__(stdout=None, stderr=None, no_color=False)
+        super(Command, self).__init__(stdout=stdout, stderr=stderr,
+                                      no_color=no_color)
         self.processes = {}
         self.started = False
 
@@ -43,11 +44,13 @@ class Command(BaseCommand):
 
     def start_worker_pool(self):
         indices = list(LoggerIndex.objects.all())
+        logger.info("Starting worker pool with %s indexers" % len(indices))
         n = 0
         for index in indices:
             c = Collector(index)
             p = Process(target=c)
             p.start()
+            logger.info("Indexer for %s started pid=%s" % (index.name, p.pid))
             self.processes[n] = (p, index)
             n += 1
         self.started = True
@@ -55,6 +58,7 @@ class Command(BaseCommand):
 
         while len(self.processes) > 0:
             if not self.started:
+                logger.info("Stopping indexers")
                 for n in self.processes:
                     (p, index) = self.processes[n]
                     os.kill(p.pid, signal.SIGTERM)
@@ -63,23 +67,29 @@ class Command(BaseCommand):
                 (p, index) = self.processes[n]
                 if p.exitcode is None:
                     if not p.is_alive() and self.started:
+                        logger.debug("Indexer with pid %s not finished "
+                                     "and not running" % p.pid)
                         # Not finished and not running
                         os.kill(p.pid, signal.SIGKILL)
                         c = Collector(index)
                         p = Process(target=c)
                         p.start()
+                        logger.warning("Indexer for %s restarted pid=%s"
+                                       % (index.name, p.pid))
                         self.processes[n] = (p, index)
                 elif p.exitcode < 0 and self.started:
-                    print('Process Ended with an error or a terminate', index)
+                    logger.warning('Process %s exited with an error '
+                                   'or terminated' % p.pid)
                     c = Collector(index)
                     p = Process(target=c)
                     p.start()
                     self.processes[n] = (p, index)
                 else:
-                    print(index, 'finished')
+                    logger.debug('Process %s exited correctly' % p.pid)
                     p.join()
                     del self.processes[n]
 
     def handle_sigint(self, sig_num, frame):
+        logger.info("Got signal %s, stopping" % sig_num)
         self.started = False
 
