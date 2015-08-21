@@ -9,12 +9,13 @@ import sys
 
 import dateutil.parser
 from django.core.signals import request_started, request_finished
-from django.db import connections
+from django.db import connections, DatabaseError
 from django.utils import six
+from django.utils.log import getLogger
 import redis
 from amqp import Connection
-from alco.collector.defaults import ALCO_SETTINGS
 
+from alco.collector.defaults import ALCO_SETTINGS
 from alco.collector import keys
 
 
@@ -28,6 +29,8 @@ class Collector(object):
         self.block_size = 1000
         self.exchange = "logstash"
         self.current_date = None
+        self.logger = getLogger('alco.collector.%s' % self.index.name)
+        self.amqp = self.redis = self.conn = None
 
     def cancel(self):
         self.cancelled = True
@@ -37,14 +40,16 @@ class Collector(object):
         self.redis = redis.Redis(**ALCO_SETTINGS['REDIS'])
         self.conn = connections[ALCO_SETTINGS['SPHINX_DATABASE_NAME']]
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self):
         try:
+            self.logger.debug("Connecting to RabbitMQ")
             self.connect()
             self.declare_queue()
             channel = self.amqp.channel()
             channel.basic_consume(self.index.queue_name,
                                   callback=self.process_message, no_ack=True)
             start = time.time()
+            self.logger.debug("Start processing messages")
             while not self.cancelled:
                 channel.wait()
                 if time.time() - start > 1:
@@ -101,7 +106,9 @@ class Collector(object):
         messages, self.messages = self.messages, []
         if not messages:
             return
+        self.logger.info("Saving %s events" % len(messages))
         key = keys.KEY_SEQUENCE.format(index=self.index.name)
+        self.logger.debug("Get new PK value from redis")
         max_pk = self.redis.incrby(key, len(messages))
         min_pk = max_pk - len(messages)
 
@@ -126,13 +133,16 @@ class Collector(object):
                          data['message']))
         query += ','.join(rows)
 
+        self.logger.debug("Check for new columns")
+
         existing = self.index.loggercolumn_set.all()
-        filtered = filter(lambda c: c.filtered, existing)
+        filtered = filter(lambda _: _.filtered, existing)
 
         existing = [c.name for c in existing]
         filtered = [c.name for c in filtered]
         new_values = set(columns.keys()) - set(existing)
 
+        self.logger.debug("Saving values for filtered columns")
         for column in filtered:
             values = columns.get(column)
             if not values:
@@ -142,19 +152,17 @@ class Collector(object):
             self.redis.sadd(key, *values)
 
         for column in new_values:
+            self.logger.debug("Register column %s" % column)
             self.index.loggercolumn_set.create(name=column)
 
-        for _ in range(3):
+        self.logger.debug("Inserting logs to searchd")
+        for _ in 1, 2, 3:
             try:
                 c = self.conn.cursor()
                 c.execute(query, args)
                 print(c.rowcount)
                 c.close()
-            except Exception as e:
-                pass
+            except DatabaseError:
+                self.logger.exception("Can't insert values to index")
             else:
                 break
-
-
-
-
