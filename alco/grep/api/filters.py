@@ -85,11 +85,11 @@ class JSONFieldFilter(BaseFilterBackend):
                     numeric.append(int(v))
                 except ValueError:
                     continue
-            stub = ','.join(['%s' * len(values)])
+            stub = ', '.join(['%s'] * len(values))
             extra_lookups['__%s_str' % lookup] = 'IN(js.%s, %s)' % (field, stub)
             extra_params.extend(values)
             if numeric:
-                stub = ','.join(['%s' * len(numeric)])
+                stub = ', '.join(['%s'] * len(numeric))
                 extra_lookups['__%s_int' % lookup] = 'IN(js.%s, %s)' % (field,
                                                                         stub)
                 extra_params.extend(numeric)
@@ -109,7 +109,9 @@ class JSONFieldFilter(BaseFilterBackend):
         for key in json_fields:
             value = request.query_params.get(key + '__in')
             if value is None:
-                continue
+                value = request.query_params.get(key)
+                if value is None:
+                    continue
             lookups[key + '__in'] = value.split(',')
 
         return lookups
