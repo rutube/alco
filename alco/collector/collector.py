@@ -72,7 +72,6 @@ class Collector(object):
             'ms': dt.microsecond,
             'seq': seq,
             'message': msg,
-            'js': json.dumps(data),
             'data': data
         }
         self.messages.append(result)
@@ -119,15 +118,22 @@ class Collector(object):
         query = "REPLACE INTO %s (id, ts, ms, seq, js, logline) VALUES " % name
         rows = []
         args = []
+
+        existing = self.index.loggercolumn_set.exclude(excluded=True)
+        indexed = [c.name for c in existing]
+
         for pk, data in zip(range(min_pk, max_pk), messages):
             # saving seen columns to LoggerColumn model, collecting unique
             # values for caching in redis
             for key, value in data['data'].items():
+                if key not in indexed:
+                    data['data'].pop(key)
+                    continue
                 columns.setdefault(key, set())
                 if not isinstance(value, (bool, int, float, six.text_type)):
                     continue
                 columns[key].add(value)
-
+            data['js'] = json.dumps(data['data'])
             rows.append("(%s, %s, %s, %s, %s, %s)")
             args.extend((pk, data['ts'], data['ms'], data['seq'], data['js'],
                          data['message']))
@@ -135,12 +141,10 @@ class Collector(object):
 
         self.logger.debug("Check for new columns")
 
-        existing = self.index.loggercolumn_set.all()
         filtered = filter(lambda _: _.filtered, existing)
 
-        existing = [c.name for c in existing]
         filtered = [c.name for c in filtered]
-        new_values = set(columns.keys()) - set(existing)
+        new_values = set(columns.keys()) - set(indexed)
 
         self.logger.debug("Saving values for filtered columns")
         for column in filtered:
