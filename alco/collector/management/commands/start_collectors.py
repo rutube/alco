@@ -5,7 +5,6 @@ import os
 from time import sleep
 from daemon import DaemonContext
 from daemon.pidfile import TimeoutPIDLockFile
-
 from django.core.management import BaseCommand
 from django.utils.log import getLogger
 from multiprocessing import Process
@@ -13,7 +12,23 @@ import signal
 from alco.collector.collector import Collector
 from alco.collector.models import LoggerIndex
 
+
 logger = getLogger('alco.collector')
+
+
+def file_handles(logger):
+    """ Get a list of filehandle numbers from logger
+        to be handed to DaemonContext.files_preserve
+    """
+    handles = []
+    for handler in logger.handlers:
+        try:
+            handles.append(handler.stream.fileno())
+        except AttributeError:
+            pass
+    if logger.parent:
+        handles += file_handles(logger.parent)
+    return handles
 
 
 class Command(BaseCommand):
@@ -31,14 +46,17 @@ class Command(BaseCommand):
             '--pidfile', action='store', dest='pidfile',
             default="collector.pid", help="pidfile location")
 
+
     def handle(self, *args, **options):
         if not options['daemon']:
             return self.start_worker_pool()
 
         path = os.path.join(os.getcwd(), options['pidfile'])
         pidfile = TimeoutPIDLockFile(path)
+        log_files = file_handles(logger)
+        context = DaemonContext(pidfile=pidfile, files_preserve=log_files)
 
-        with DaemonContext(pidfile=pidfile):
+        with context:
             logger.info("daemonized")
             self.start_worker_pool()
 
