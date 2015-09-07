@@ -169,7 +169,7 @@ class Collector(object):
             try:
                 c = self.conn.cursor()
                 c.execute(query, args)
-                print(c.rowcount)
+                self.logger.debug("%s rows inserted" % c.rowcount)
                 c.close()
             except DatabaseError:
                 self.logger.exception("Can't insert values to index")
