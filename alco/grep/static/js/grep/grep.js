@@ -883,6 +883,9 @@
 	    },
 
 	    checkScroll: function() {
+		    if (this.searchCollection && this.searchCollection.loading
+		        || this.collection.loading)
+		        return;
             this.loader.hide();
 		    if (this.nothingFound)
 		        return;
@@ -894,7 +897,10 @@
 
             if (contentOffset + contentHeight - scrollTop - pageHeight < triggerPoint) {
 	            if (!this.search ||!this.searchCollection.loading)
-                    this.collection.loadMore();
+                    if (this.collection.loadMore()) {
+	                    this.loader.show()
+	                    this.error.hide();
+                    }
 	        }
         },
 
