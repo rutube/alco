@@ -289,7 +289,10 @@
             this.page += 1;
 
             var res = this.fetch({
-                data: params
+                data: params,
+	            error: _.bind(function(col) {
+                    col.loading = false;
+	            })
             });
             $.when(res).then(_.bind(function(e, x, y) {
                 this.loading = false;
@@ -299,6 +302,32 @@
             }, this));
             return res;
         },
+
+		reloadLastPage: function() {
+			if (this.loading) {
+                return false;
+            }
+			 var params = {
+                'page': this.page
+            };
+            _.extend(params, this.queryParams);
+
+            this.loading = true;
+			var res = this.fetch({
+                data: params,
+	            error: _.bind(function(col) {
+                    col.loading = false;
+	            })
+            });
+            $.when(res).then(_.bind(function(e, x, y) {
+                this.loading = false;
+	            if (this.search)
+		            this.updateMatches();
+	            this.trigger("loaded");
+            }, this));
+            return res;
+		},
+
         getUrl: function() {
             return this.url + '?' + $.param(this.queryParams, 'page');
         }
@@ -756,16 +785,21 @@
 	    name: 'ResultsView',
 	    el: "#log-list",
 	    container: "#log-container",
+	    events: {
+		    'click #log-error': 'reloadLastPage'
+	    },
 
 	    initCollection: function (queryParams) {
 		    this.search = queryParams['search'];
 		    this.nothingFound = false;
 		    this.loader = $('#log-progress');
+		    this.error = $('#log-error');
 		    if (this.search) {
 			    this.searchCollection = new LogCollection([], queryParams);
 			    this.listenToOnce(this.searchCollection, "loaded", this.startContextLoading);
 			    this.listenTo(this.searchCollection, "loaded", this.checkScroll);
-			    queryParams = _.omit(queryParams, 'search');
+			    this.listenTo(this.searchCollection, "error", this.showError);
+		        queryParams = _.omit(queryParams, 'search');
 		    } else {
 			    this.searchCollection = null;
 		    }
@@ -774,6 +808,7 @@
 		    this.listenTo(this.collection, "add", this.appendItem);
 		    this.listenTo(this.collection, "loaded", this.checkScroll);
 		    this.listenTo(this.collection, 'request', this.showLoader);
+		    this.listenTo(this.collection, "error", this.showError);
 		    if (!this.search)
 		        this.collection.loadMore();
 		    else
@@ -807,6 +842,12 @@
 
 	    showLoader: function(options) {
 		    this.loader.show();
+		    this.error.hide();
+	    },
+
+	    showError: function(e) {
+		    this.loader.hide();
+		    this.error.show()
 	    },
 
 	    updateVisibility: function(queryParams) {
@@ -828,18 +869,17 @@
 		    }
 
 	    },
-	    //
-	    //reloadCollection: function (queryParams) {
-		 //   this.collection.reset();
-		 //   this.stopListening(this.collection, 'add');
-		 //   this.stopListening(this.collection, 'loaded');
-		 //   this.container.html('');
-		 //   this.initCollection(queryParams);
-	    //},
 
 	    reset: function() {
 		    this.container.html('');
 		    this.loader.show();
+		    this.error.hide();
+	    },
+
+	    reloadLastPage: function() {
+		    this.loader.show();
+		    this.error.hide();
+		    this.collection.reloadLastPage();
 	    },
 
 	    checkScroll: function() {
@@ -905,8 +945,7 @@
 
         grep: function(logger_index) {
 			var query_string = window.location.search.substring(1);
-
-            if (this.view) {
+			if (this.view) {
                 this.view.remove();
             }
 
