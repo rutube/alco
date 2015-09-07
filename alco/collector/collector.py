@@ -56,6 +56,7 @@ class Collector(object):
                     self.push_messages()
                     start = time.time()
         except KeyboardInterrupt:
+            self.logger.warning("Got SIGINT, exit(0)")
             self.amqp.close()
             sys.exit(0)
 

@@ -4,6 +4,7 @@
 import datetime
 from dateutil import rrule
 from django.db import models
+from django.utils.timezone import localtime, now
 
 
 class LoggerIndex(models.Model):
@@ -19,7 +20,7 @@ class LoggerIndex(models.Model):
 
     @property
     def index_dates(self):
-        today = datetime.date.today()
+        today = localtime(now()).date()
         midnight = today + datetime.timedelta(days=1)
         start = midnight - datetime.timedelta(days=self.intervals)
         dates = rrule.rrule(

@@ -46,7 +46,6 @@ class Command(BaseCommand):
             '--pidfile', action='store', dest='pidfile',
             default="collector.pid", help="pidfile location")
 
-
     def handle(self, *args, **options):
         if not options['daemon']:
             return self.start_worker_pool()
@@ -64,6 +63,7 @@ class Command(BaseCommand):
         indices = list(LoggerIndex.objects.all())
         logger.info("Starting worker pool with %s indexers" % len(indices))
         n = 0
+        self.started = True
         for index in indices:
             c = Collector(index)
             p = Process(target=c)
@@ -71,7 +71,6 @@ class Command(BaseCommand):
             logger.info("Indexer for %s started pid=%s" % (index.name, p.pid))
             self.processes[n] = (p, index)
             n += 1
-        self.started = True
         signal.signal(signal.SIGINT, self.handle_sigint)
 
         while len(self.processes) > 0:
@@ -102,6 +101,11 @@ class Command(BaseCommand):
                     p = Process(target=c)
                     p.start()
                     self.processes[n] = (p, index)
+                elif p.exitcode < 0:
+                    logger.warning("Process %s exited with return code %s while"
+                                   "terminating" % (p.pid, p.exitcode))
+                    p.join()
+                    del self.processes[n]
                 else:
                     logger.debug('Process %s exited correctly' % p.pid)
                     p.join()
