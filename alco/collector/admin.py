@@ -11,6 +11,7 @@ class LoggerIndexAdmin(admin.ModelAdmin):
 
 class LoggerColumnAdmin(admin.ModelAdmin):
     list_display = ('name', 'index_name', 'filtered', 'display', 'excluded')
+    list_filter = ('index',)
 
     def index_name(self, obj):
         return obj.index.name

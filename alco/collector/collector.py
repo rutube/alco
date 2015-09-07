@@ -118,14 +118,21 @@ class Collector(object):
         query = "REPLACE INTO %s (id, ts, ms, seq, js, logline) VALUES " % name
         rows = []
         args = []
+        # all defined columns
+        all_columns = list(self.index.loggercolumn_set.all())
+        indexed_columns = [c for c in all_columns if not c.excluded]
+        filtered_columns = [c for c in indexed_columns if c.filtered]
 
-        existing = self.index.loggercolumn_set.exclude(excluded=True)
-        indexed = [c.name for c in existing]
+        # existing = self.index.loggercolumn_set.exclude(excluded=True)
+        indexed = [c.name for c in indexed_columns]
+        filtered = [c.name for c in filtered_columns]
+        seen = set()
 
         for pk, data in zip(range(min_pk, max_pk), messages):
             # saving seen columns to LoggerColumn model, collecting unique
             # values for caching in redis
             for key, value in data['data'].items():
+                seen.add(key)
                 if key not in indexed:
                     data['data'].pop(key)
                     continue
@@ -141,10 +148,7 @@ class Collector(object):
 
         self.logger.debug("Check for new columns")
 
-        filtered = filter(lambda _: _.filtered, existing)
-
-        filtered = [c.name for c in filtered]
-        new_values = set(columns.keys()) - set(indexed)
+        new_values = seen - set(indexed)
 
         self.logger.debug("Saving values for filtered columns")
         for column in filtered:
