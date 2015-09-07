@@ -45,6 +45,8 @@ for idx in indices:
 
     # collect all old index dirs for logger
     local_dir = os.path.join("/data/sphinx", name)
+    if not os.path.exists(local_dir):
+        os.makedirs(local_dir)
     for dt in os.listdir(local_dir):
         if not re.match(r'^[\d]{8}$', dt):
             continue
