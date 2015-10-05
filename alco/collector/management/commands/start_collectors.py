@@ -94,14 +94,14 @@ class Command(BaseCommand):
                         logger.warning("Indexer for %s restarted pid=%s"
                                        % (index.name, p.pid))
                         self.processes[n] = (p, index)
-                elif p.exitcode < 0 and self.started:
+                elif p.exitcode != 0 and self.started:
                     logger.warning('Process %s exited with an error '
                                    'or terminated' % p.pid)
                     c = Collector(index)
                     p = Process(target=c)
                     p.start()
                     self.processes[n] = (p, index)
-                elif p.exitcode < 0:
+                elif p.exitcode != 0:
                     logger.warning("Process %s exited with return code %s while"
                                    "terminating" % (p.pid, p.exitcode))
                     p.join()
