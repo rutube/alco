@@ -18,6 +18,7 @@ from django.contrib import admin
 
 urlpatterns = [
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^admin/', include('massadmin.urls')),
     url(r'^grep/', include('alco.grep.urls')),
     url(r'^collector/', include('alco.collector.urls')),
     url(r'^api/grep/', include('alco.grep.api.urls')),
