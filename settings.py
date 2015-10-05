@@ -94,12 +94,6 @@ USE_TZ = True
 
 TEMPLATE_DIRS = [os.path.join(BASE_DIR, 'alco/templates')]
 
-TEMPLATE_LOADERS = (
-    'django.template.loaders.filesystem.Loader',
-    'django.template.loaders.app_directories.Loader',
-    'django.template.loaders.eggs.Loader',
-)
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
