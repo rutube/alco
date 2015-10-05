@@ -36,6 +36,7 @@ setup(
         'djangorestframework>=3.1',
         'dateutils',
         'django-filter>=0.10.0',
+        'django-mass-edit',
         'jsonfield',
         'python-daemon',
         'redis',
