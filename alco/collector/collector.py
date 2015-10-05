@@ -87,9 +87,10 @@ class Collector(object):
 
     def declare_queue(self):
         channel = self.amqp.channel()
+        durable = self.index.durable
         channel.exchange_declare(exchange=self.exchange, type='topic',
-                                 durable=True, auto_delete=False)
-        channel.queue_declare(self.index.queue_name, durable=True,
+                                 durable=durable, auto_delete=False)
+        channel.queue_declare(self.index.queue_name, durable=durable,
                               auto_delete=False)
         channel.queue_bind(self.index.queue_name,
                            exchange=self.exchange,

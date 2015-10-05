@@ -13,6 +13,7 @@ class LoggerIndex(models.Model):
     intervals = models.IntegerField(default=30)
     queue_name = models.CharField(max_length=30, default='logstash')
     routing_key = models.CharField(max_length=30, default='logstash')
+    durable = models.BooleanField(default=False, blank=True)
 
     @property
     def index_names(self):
