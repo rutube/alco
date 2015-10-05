@@ -1,7 +1,7 @@
 # coding: utf-8
 
 # $Id: $
-
+from django.utils.timezone import now, localtime
 
 from django.views.generic import ListView
 from django.conf import settings
@@ -19,4 +19,5 @@ class LoggerIndexView(ListView):
         cd = super(LoggerIndexView, self).get_context_data(**kwargs)
         cd['settings'] = settings
         cd['config'] = SPHINX_CONFIG
+        cd['now'] = localtime(now()).strftime('%Y-%m-%d %H:%M:%S')
         return cd
