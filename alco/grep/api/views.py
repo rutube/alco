@@ -72,7 +72,9 @@ class GrepView(ListAPIView):
         return serializer_class
 
     def get_queryset(self):
-        return self.log_model.objects.order_by('pk')
+        page = int(self.request.GET.get('page', 1)) + 1
+        per_page = self.pagination_class.page_size
+        return self.log_model.objects.options(max_matches=page * per_page)
 
     def get_json_fields(self, request):
         fields = self.index.visible_fields
