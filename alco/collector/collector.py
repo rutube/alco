@@ -8,14 +8,15 @@ import json
 import sys
 from collections import defaultdict
 from random import randint
+from logging import getLogger
 
 import dateutil.parser
 from django.core.signals import request_started, request_finished
 from django.db import connections, DatabaseError
 from django.utils import six
-from django.utils.log import getLogger
 import redis
 from amqp import Connection
+from pyrabbit.api import Client
 
 from alco.collector.defaults import ALCO_SETTINGS
 from alco.collector import keys
@@ -32,21 +33,27 @@ class Collector(object):
         self.exchange = "logstash"
         self.current_date = None
         self.logger = getLogger('alco.collector.%s' % self.index.name)
-        self.amqp = self.redis = self.conn = None
+        self.amqp = self.redis = self.conn = self.vhost = None
 
     def cancel(self):
         self.cancelled = True
 
     def connect(self):
-        self.amqp = Connection(**ALCO_SETTINGS['RABBITMQ'])
+        rabbitmq = ALCO_SETTINGS['RABBITMQ']
+        self.amqp = Connection(**rabbitmq)
         self.redis = redis.Redis(**ALCO_SETTINGS['REDIS'])
         self.conn = connections[ALCO_SETTINGS['SPHINX_DATABASE_NAME']]
+        hostname = '%s:%s' % (rabbitmq['host'],
+                              ALCO_SETTINGS['RABBITMQ_API_PORT'])
+        self.rabbit = Client(hostname, rabbitmq['userid'], rabbitmq['password'])
+        self.vhost = rabbitmq['virtual_host']
 
     def __call__(self):
         try:
             self.logger.debug("Connecting to RabbitMQ")
             self.connect()
             self.declare_queue()
+            self.cleanup_bindings()
             channel = self.amqp.channel()
             channel.basic_consume(self.index.queue_name,
                                   callback=self.process_message, no_ack=True)
@@ -89,14 +96,33 @@ class Collector(object):
 
     def declare_queue(self):
         channel = self.amqp.channel()
+        """:type channel: amqp.channel.Channel"""
         durable = self.index.durable
         channel.exchange_declare(exchange=self.exchange, type='topic',
                                  durable=durable, auto_delete=False)
         channel.queue_declare(self.index.queue_name, durable=durable,
                               auto_delete=False)
-        channel.queue_bind(self.index.queue_name,
-                           exchange=self.exchange,
-                           routing_key=self.index.routing_key)
+        for rk in self.get_routing_keys():
+            channel.queue_bind(self.index.queue_name, exchange=self.exchange,
+                               routing_key=rk)
+
+    def get_routing_keys(self):
+        return map(lambda x: x.strip(), self.index.routing_key.split(','))
+
+    def cleanup_bindings(self):
+        self.logger.debug("Checking bindings")
+        queue = self.index.queue_name
+        exchange = self.exchange
+        bindings = self.rabbit.get_queue_bindings(self.vhost, queue)
+        bindings = [b for b in bindings if b['source'] == exchange]
+        allowed = self.get_routing_keys()
+        q = six.moves.urllib.parse.quote
+        for b in bindings:
+            rk = b['routing_key']
+            if rk in allowed:
+                continue
+            self.logger.debug("Unbind %s with RK=%s" % (queue, rk))
+            self.rabbit.delete_binding(self.vhost, exchange, q(queue), q(rk))
 
     def push_messages(self):
         try:

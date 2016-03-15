@@ -2,16 +2,17 @@
 
 # $Id: $
 import os
+import signal
+from logging import getLogger
+from multiprocessing import Process
 from time import sleep
+
 from daemon import DaemonContext
 from daemon.pidfile import TimeoutPIDLockFile
 from django.core.management import BaseCommand
-from django.utils.log import getLogger
-from multiprocessing import Process
-import signal
+
 from alco.collector.collector import Collector
 from alco.collector.models import LoggerIndex
-
 
 logger = getLogger('alco.collector')
 
