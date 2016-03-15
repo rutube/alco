@@ -24,22 +24,28 @@ class Shortcut(models.Model):
 class LogBase(SphinxModel):
     class Meta:
         abstract = True
-        ordering = ('ts', 'seq')
+        ordering = ('pk',)
         db_table = 'logger'
 
-    ts = SphinxDateTimeField()
-    ms = models.IntegerField()
-    seq = models.BigIntegerField()
     logline = models.TextField()
     js = JSONField()
 
     @property
+    def ts(self):
+        return self.pk / (10**9)
+
+    @property
+    def ms(self):
+        return (self.pk / 1000) % 10**6
+
+    @property
     def datetime(self):
-        return self.ts.replace(microsecond=self.ms)
+        return datetime.fromtimestamp(self.timestamp)
 
     @property
     def timestamp(self):
-        return time.mktime(self.datetime.timetuple())
+        return (self.pk / 1000) / 1000000.0
+
 
 def create_char_field(c):
     return models.CharField(max_length=255, db_column='js.%s' % c)
@@ -57,7 +63,7 @@ def create_index_model(index, distr=None):
 
     columns = index.loggercolumn_set.values_list('name', flat=True)
 
-    fields = {c: create_char_field(c) for c in columns}
+    fields = {c: create_char_field(c) for c in columns if c not in ('pk', 'id')}
     fields.update({'Meta': Meta, '__module__': __name__})
     Log = type(model_name, (LogBase,), fields)
     return Log

@@ -6,6 +6,8 @@
 import time
 import json
 import sys
+from collections import defaultdict
+from random import randint
 
 import dateutil.parser
 from django.core.signals import request_started, request_finished
@@ -108,13 +110,7 @@ class Collector(object):
         if not messages:
             return
         self.logger.info("Saving %s events" % len(messages))
-        key = keys.KEY_SEQUENCE.format(index=self.index.name)
-        self.logger.debug("Get new PK value from redis")
-        max_pk = self.redis.incrby(key, len(messages))
-        min_pk = max_pk - len(messages)
-
-        columns = dict()
-
+        columns = defaultdict(set)
         suffix = self.current_date.strftime("%Y%m%d")
         name = "%s_%s" % (self.index.name, suffix)
         query = "REPLACE INTO %s (id, ts, ms, seq, js, logline) VALUES " % name
@@ -125,23 +121,14 @@ class Collector(object):
         indexed_columns = [c for c in all_columns if not c.excluded]
         filtered_columns = [c for c in indexed_columns if c.filtered]
 
-        # existing = self.index.loggercolumn_set.exclude(excluded=True)
         indexed = [c.name for c in indexed_columns]
         filtered = [c.name for c in filtered_columns]
         seen = set()
-
-        for pk, data in zip(range(min_pk, max_pk), messages):
+        pkeys = self.get_primary_keys(messages)
+        for pk, data in zip(pkeys, messages):
             # saving seen columns to LoggerColumn model, collecting unique
             # values for caching in redis
-            for key, value in data['data'].items():
-                seen.add(key)
-                if key not in indexed:
-                    data['data'].pop(key)
-                    continue
-                columns.setdefault(key, set())
-                if not isinstance(value, (bool, int, float, six.text_type)):
-                    continue
-                columns[key].add(value)
+            self.process_js_columns(data, columns, indexed, seen)
             data['js'] = json.dumps(data['data'])
             rows.append("(%s, %s, %s, %s, %s, %s)")
             args.extend((pk, data['ts'], data['ms'], data['seq'], data['js'],
@@ -176,3 +163,32 @@ class Collector(object):
                 self.logger.exception("Can't insert values to index")
             else:
                 break
+
+    @staticmethod
+    def process_js_columns(data, columns, indexed, seen):
+        for key, value in data['data'].items():
+            if key in ('pk', 'id', 'ts', 'ms'):
+                # reserved by Django and ALCO
+                data['data'].pop(key)
+                continue
+            # save seen columns set
+            seen.add(key)
+            if key not in indexed:
+                # discard fields excluded from indexing
+                data['data'].pop(key)
+                continue
+            # save column values set
+            if not isinstance(value, (bool, int, float, six.text_type)):
+                continue
+            columns[key].add(value)
+
+    def get_primary_keys(self, messages):
+        """ Generate PK sequence for a list of messages."""
+        pkeys = []
+        pk = None
+        for msg in messages:
+            # pk is [timestamp][microseconds][randint] in 10based integer
+            pk = int((msg['ts'] * 10**6 + msg['ms']) * 1000) + randint(0, 1000)
+            pkeys.append(pk)
+        self.logger.debug("first pk is %s" % pk)
+        return pkeys

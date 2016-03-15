@@ -2,6 +2,9 @@
 
 # $Id: $
 from copy import copy
+from datetime import datetime, timedelta
+
+from django.http import HttpResponseRedirect
 # noinspection PyUnresolvedReferences
 from django.utils.six.moves.urllib import parse
 from django.core.urlresolvers import reverse
@@ -22,6 +25,17 @@ class GrepView(DetailView):
     slug_field = 'name'
     slug_url_kwarg = 'name'
     template_name = 'grep/log_view.html'
+
+    def get(self, request, *args, **kwargs):
+        if not request.GET.get('start_ts'):
+            url = parse.urlparse(request.path)
+            query_string = dict(parse.parse_qsl(request.META['QUERY_STRING']))
+            start_ts = datetime.now().replace(microsecond=0) - timedelta(minutes=5)
+            query_string['start_ts'] = start_ts.isoformat(sep=' ')
+            query = parse.urlencode(query_string).replace('+', '%20')
+            url = url._replace(query=query)
+            return HttpResponseRedirect(parse.urlunparse(url))
+        return super(GrepView, self).get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         cd = super(GrepView, self).get_context_data(**kwargs)
