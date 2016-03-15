@@ -11,7 +11,7 @@ from rest_framework.generics import ListAPIView
 
 from alco.collector.models import LoggerIndex
 from alco.grep.api import filters
-from alco.grep.api.pagination import LogPaginator
+from alco.grep.api.pagination import CursorLogPaginator
 from alco.grep.models import create_index_model
 from alco.grep.api.serializers import LogBaseSerializer
 
@@ -34,7 +34,7 @@ class GrepView(ListAPIView):
                        filters.JSONFieldFilter)
     search_fields = ('logline',)
 
-    pagination_class = LogPaginator
+    pagination_class = CursorLogPaginator
 
     @property
     def filter_class(self):
