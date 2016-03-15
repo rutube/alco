@@ -1,6 +1,8 @@
 # coding: utf-8
 
 # $Id: $
+import time
+from django.forms import fields
 from django.utils.functional import cached_property
 import django_filters
 from rest_framework import filters as rf_filters
@@ -14,6 +16,18 @@ from alco.grep.models import create_index_model
 from alco.grep.api.serializers import LogBaseSerializer
 
 
+class TimestampPKField(fields.DateTimeField):
+    def to_python(self, value):
+        dt = super(TimestampPKField, self).to_python(value)
+        if dt is None:
+            return None
+        return time.mktime(dt.timetuple()) * 10 ** 9
+
+
+class TimestampPKFilter(django_filters.DateTimeFilter):
+    field_class = TimestampPKField
+
+
 class GrepView(ListAPIView):
     filter_backends = (rf_filters.DjangoFilterBackend,
                        filters.SphinxSearchFilter,
@@ -25,12 +39,12 @@ class GrepView(ListAPIView):
     @property
     def filter_class(self):
         class TimestampFilter(django_filters.FilterSet):
-            start_ts = django_filters.DateTimeFilter(name="ts", lookup_type='gte')
-            end_ts = django_filters.NumberFilter(name="ts", lookup_type='lte')
+            start_ts = TimestampPKFilter(name="pk", lookup_type='gte')
+            end_ts = TimestampPKFilter(name="pk", lookup_type='lte')
 
             class Meta:
                 model = self.log_model
-                fields = ['ts']
+                fields = ['id']
 
         return TimestampFilter
 
@@ -58,7 +72,7 @@ class GrepView(ListAPIView):
         return serializer_class
 
     def get_queryset(self):
-        return self.log_model.objects.order_by('ts', 'ms', 'seq')
+        return self.log_model.objects.order_by('pk')
 
     def get_json_fields(self, request):
         fields = self.index.visible_fields

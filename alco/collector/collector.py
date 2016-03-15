@@ -167,8 +167,8 @@ class Collector(object):
     @staticmethod
     def process_js_columns(data, columns, indexed, seen):
         for key, value in data['data'].items():
-            if key in ('pk', 'id'):
-                # reserved by Django
+            if key in ('pk', 'id', 'ts', 'ms'):
+                # reserved by Django and ALCO
                 data['data'].pop(key)
                 continue
             # save seen columns set
