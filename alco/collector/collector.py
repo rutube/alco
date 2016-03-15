@@ -33,7 +33,7 @@ class Collector(object):
         self.exchange = "logstash"
         self.current_date = None
         self.logger = getLogger('alco.collector.%s' % self.index.name)
-        self.amqp = self.redis = self.conn = self.vhost = self.rabbit =None
+        self.amqp = self.redis = self.conn = self.vhost = self.rabbit = None
 
     def cancel(self):
         self.cancelled = True
