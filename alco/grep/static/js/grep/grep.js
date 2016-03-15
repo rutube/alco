@@ -281,17 +281,10 @@
                 return false;
             }
 
-
-            // var params = {
-            //     'page': this.page
-            // };
-            // _.extend(params, this.queryParams);
-
             this.loading = true;
             this.url = this.next;
 
             var res = this.fetch({
-                //data: this.queryParams,
                 error: _.bind(function(col) {
                     col.loading = false;
 	            })
@@ -309,14 +302,9 @@
 			if (this.loading) {
                 return false;
             }
-			 // var params = {
-            //     'page': this.page
-            // };
-            // _.extend(params, this.queryParams);
 
             this.loading = true;
 			var res = this.fetch({
-				data: this.queryParams,
                 error: _.bind(function(col) {
                     col.loading = false;
 	            })
