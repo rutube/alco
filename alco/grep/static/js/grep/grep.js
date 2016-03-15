@@ -232,19 +232,20 @@
         url: '/api/grep/',
 
         initialize: function(models, queryParams) {
-            this.page = 1;
             this.logger_index = queryParams['logger_index'] || 'logger';
 	        if (queryParams['columns'])
 	            this.columns = queryParams['columns'].split(',');
-	        this.url += this.logger_index + '/';
-            this.has_next = true;
+	        this.queryParams = _.omit(queryParams, 'logger_index') || {};
+	        this.url += this.logger_index + '/?';
+	        this.baseUrl = this.url + $.param(this.queryParams);
+            console.log("this.baseUrl=" + this.baseUrl);
+	        this.next = this.baseUrl;
             this.loading = false;
-            this.queryParams = queryParams || {};
-	        this.search = queryParams['search'];
+            this.search = this.queryParams['search'];
         },
 
         parse: function(resp) {
-            this.has_next = resp['next'] || false;
+            this.next = ('next' in resp) && resp['next'];
             return resp['results'];
         },
 
@@ -270,27 +271,28 @@
 
 	    reset: function(models, options) {
 		    Backbone.Collection.prototype.reset.call(this, models, options);
-		    this.has_next = true;
-		    this.page = 1;
+		    this.baseUrl = this.url + $.param(this.queryParams);
+            console.log("this.baseUrl=" + this.base);
+	        this.next = this.baseUrl;
 	    },
 
         loadMore: function() {
-            if (this.loading || !this.has_next) {
+            if (this.loading || !this.next) {
                 return false;
             }
 
 
-	        var params = {
-                'page': this.page
-            };
-            _.extend(params, this.queryParams);
+            // var params = {
+            //     'page': this.page
+            // };
+            // _.extend(params, this.queryParams);
 
             this.loading = true;
-            this.page += 1;
+            this.url = this.next;
 
             var res = this.fetch({
-                data: params,
-	            error: _.bind(function(col) {
+                //data: this.queryParams,
+                error: _.bind(function(col) {
                     col.loading = false;
 	            })
             });
@@ -307,15 +309,15 @@
 			if (this.loading) {
                 return false;
             }
-			 var params = {
-                'page': this.page
-            };
-            _.extend(params, this.queryParams);
+			 // var params = {
+            //     'page': this.page
+            // };
+            // _.extend(params, this.queryParams);
 
             this.loading = true;
 			var res = this.fetch({
-                data: params,
-	            error: _.bind(function(col) {
+				data: this.queryParams,
+                error: _.bind(function(col) {
                     col.loading = false;
 	            })
             });
@@ -329,7 +331,7 @@
 		},
 
         getUrl: function() {
-            return this.url + '?' + $.param(this.queryParams, 'page');
+            return this.url;
         }
     });
 
