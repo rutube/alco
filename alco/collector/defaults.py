@@ -13,7 +13,7 @@ ALCO_SETTINGS = {
         'host': '127.0.0.1',
         'userid': 'guest',
         'password': 'guest',
-        'virtual_host': '/'
+        'virtual_host': '/',
     },
 
     # redis for generating primary key sequences
@@ -26,7 +26,8 @@ ALCO_SETTINGS = {
     # name of django.db.connection for SphinxSearch
     'SPHINX_DATABASE_NAME': 'sphinx',
     # number of results in log view API
-    'LOG_PAGE_SIZE': 100
+    'LOG_PAGE_SIZE': 100,
+    'RABBITMQ_API_PORT': 55672
 }
 
 # Allow to override some settings from project django conf.

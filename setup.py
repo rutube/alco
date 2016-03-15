@@ -41,6 +41,7 @@ setup(
         'python-daemon',
         'redis',
         'amqp',
+        'pyrabbit',
         'django_sphinxsearch',
     ],
     license='Beerware',
