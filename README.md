@@ -32,7 +32,7 @@ Technology stack
 Let's trace log message path from some distributed system to ALCO web interface.
 
 1. Python-based project calls `logger.debug()` method with text 'hello world'
-2. At startup time [Logcollect](https://github.com/tumb1er/logcollect/) library automatically configures python logging (or even [Django](https://github.com/django/django/) and [Celery](https://github.com/celery/celery) one's) to send log messages to RabbitMQ server in JSON format readable both with ELK and ALCO projects.
+2. At startup time [Logcollect](https://github.com/rutube/logcollect/) library automatically configures python logging (or even [Django](https://github.com/django/django/) and [Celery](https://github.com/celery/celery) one's) to send log messages to RabbitMQ server in JSON format readable both with ELK and ALCO projects.
 3. ALCO log collector binds a queue to RabbitMQ exchange and processes messages in a batch.
 4. It uses Redis to collect unique values for filterable fields and SphinxSearch to store messages in a realtime index.
 5. When a message is inserted to sphinxsearch, it contains indexed `message` field, timestamp information and schemeless JSON field named `js` with all log record attributes sent by python log.
@@ -42,16 +42,16 @@ Requirements
 ------------
 
 * Python 2.7 or 3.3+
-* [Logcollect](https://github.com/tumb1er/logcollect/) for python projects which logs are collected
+* [Logcollect](https://github.com/rutube/logcollect/) for python projects which logs are collected
 * [RabbitMQ](https://www.rabbitmq.com/) server for distributed log collection
 * [SphinxSearch](http://sphinxsearch.com/) server 2.3 or later for log storage
 * [Redis](http://redis.io/) for SphinxSearch docid management and field values storage
-* [django-sphinxsearch](https://github.com/tumb1er/django_sphinxsearch) as a database backend for `Django>=1.8` (will be available from PyPI)
+* [django-sphinxsearch](https://github.com/rutube/django_sphinxsearch) as a database backend for `Django>=1.8` (will be available from PyPI)
 
 Setup
 -----
 
-1. You need to configure logcollect in analyzed projects (see [README](https://github.com/tumb1er/logcollect#tips-for-configuration)). If RabbitMQ admin interface shows non-zero message flow in `logstash` exchange - "It works" :-)
+1. You need to configure logcollect in analyzed projects (see [README](https://github.com/rutube/logcollect#tips-for-configuration)). If RabbitMQ admin interface shows non-zero message flow in `logstash` exchange - "It works" :-)
 
 2. Install alco and it's requirements from PyPi
 
