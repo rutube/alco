@@ -139,7 +139,7 @@ class Collector(object):
         columns = defaultdict(set)
         suffix = self.current_date.strftime("%Y%m%d")
         name = "%s_%s" % (self.index.name, suffix)
-        query = "REPLACE INTO %s (id, ts, ms, seq, js, logline) VALUES " % name
+        query = "REPLACE INTO %s (id, js, logline) VALUES " % name
         rows = []
         args = []
         # all defined columns
@@ -156,8 +156,8 @@ class Collector(object):
             # values for caching in redis
             self.process_js_columns(data, columns, indexed, seen)
             data['js'] = json.dumps(data['data'])
-            rows.append("(%s, %s, %s, %s, %s, %s)")
-            args.extend((pk, data['ts'], data['ms'], data['seq'], data['js'],
+            rows.append("(%s, %s, %s)")
+            args.extend((pk, data['js'],
                          data['message']))
         query += ','.join(rows)
 
@@ -193,7 +193,7 @@ class Collector(object):
     @staticmethod
     def process_js_columns(data, columns, indexed, seen):
         for key, value in data['data'].items():
-            if key in ('pk', 'id', 'ts', 'ms'):
+            if key in ('pk', 'id', 'ts', 'ms', 'seq'):
                 # reserved by Django and ALCO
                 data['data'].pop(key)
                 continue
