@@ -238,8 +238,7 @@
 	        this.queryParams = _.omit(queryParams, 'logger_index') || {};
 	        this.url += this.logger_index + '/?';
 	        this.baseUrl = this.url + $.param(this.queryParams);
-            console.log("this.baseUrl=" + this.baseUrl);
-	        this.next = this.baseUrl;
+            this.next = this.baseUrl;
             this.loading = false;
             this.search = this.queryParams['search'];
         },
@@ -272,8 +271,7 @@
 	    reset: function(models, options) {
 		    Backbone.Collection.prototype.reset.call(this, models, options);
 		    this.baseUrl = this.url + $.param(this.queryParams);
-            console.log("this.baseUrl=" + this.base);
-	        this.next = this.baseUrl;
+            this.next = this.baseUrl;
 	    },
 
         loadMore: function() {
@@ -393,7 +391,6 @@
 			e.preventDefault();
 			var active = !this.model.get(this.stateField);
 			this.model.set(this.stateField, active);
-			// console.log(this.model.name + "." + this.model.get(this.nameField) + " now is " + active);
 
 			// add separate version of change:active event, because of
 			// modifications of model done by collection
@@ -531,7 +528,6 @@
 
 		markActive: function() {
 			this.model.set(this.stateField, true);
-			// console.log(this.model.name + "." + this.model.get(this.nameField) + " now is true");
 
 			// add separate version of change:active event, because of
 			// modifications of model done by collection
@@ -616,14 +612,11 @@
 		updateQueryParams: function (what) {
 			this.constructQueryParams();
 			var viewUrl = this.pageUrl + '?' + $.param(this.queryParams).replace(/\+/g, '%20');
-			// console.log(viewUrl);
-
 			if (what == 'columns') {
 				this.resultsView.updateVisibility(this.queryParams);
 				router.navigate(viewUrl)
 			} else {
 			    router.navigate(viewUrl, {trigger: true});
-			//	this.resultsView.reloadCollection(this.queryParams);
 			}
 		},
 
@@ -670,13 +663,17 @@
 		el: "#search-form",
 		events: {
 			'submit': 'updateSearch',
-			'click .filter-toggler': 'toggleSearchFilter'
+			'click .filter-toggler': 'toggleSearchFilter',
+			'click #context-btn': 'toggleContext'
 		},
 		initialize: function(options) {
 			options = options || {};
 		    var queryParams = options.queryParams || {};
 
 			this.input = this.$el.find('#search-text');
+			this.context_btn = this.$el.find('#context-btn');
+			this.context = !!queryParams['context'];
+			this.context_btn.toggleClass('active', this.context);
 
 			this.fields = [];
 			_.each(this.$el.find('.filter-toggler'), function(el) {
@@ -729,6 +726,14 @@
 			}
 			this.updateInput();
 		},
+		toggleContext: function(e) {
+			var button = $(e.target);
+			var active = button.hasClass('active');
+			button.toggleClass('active', !active);
+			this.context = !active;
+			filterEvents.trigger('filter-changed', 'context');
+			this.input.focus();
+		},
 		updateSearch: function(e){
 			e.preventDefault();
 			this.parseInput();
@@ -765,6 +770,8 @@
 			_.extend(result, this.filters);
 			if (this.search)
 				result['search'] = this.search;
+			if (this.context)
+				result['context'] = 'y';
 			return result;
 		}
 
@@ -781,12 +788,16 @@
 
 	    initCollection: function (queryParams) {
 		    this.search = queryParams['search'];
+		    this.context = queryParams['context'] || !this.search;
 		    this.nothingFound = false;
 		    this.loader = $('#log-progress');
 		    this.error = $('#log-error');
 		    if (this.search) {
 			    this.searchCollection = new LogCollection([], queryParams);
-			    this.listenToOnce(this.searchCollection, "loaded", this.startContextLoading);
+			    if (!this.context)
+			        this.listenTo(this.searchCollection, "add", this.appendItem);
+			    else
+	                this.listenToOnce(this.searchCollection, "loaded", this.startContextLoading);
 			    this.listenTo(this.searchCollection, "loaded", this.checkScroll);
 			    this.listenTo(this.searchCollection, "error", this.showError);
 		        queryParams = _.omit(queryParams, 'search');
@@ -815,6 +826,8 @@
 			    this.noSearchResults();
 			    return;
 		    }
+		    if (!this.context)
+			    return;
 		    var firstResult = this.searchCollection.models[0];
 		    this.collection.queryParams['start_ts'] = firstResult.get('datetime').replace('T', ' ');
 		    this.collection.loadMore();
@@ -857,7 +870,6 @@
 			    $('.column-toggle ').show();
 			    this.collection.columns = null;
 		    }
-
 	    },
 
 	    reset: function() {
@@ -869,7 +881,8 @@
 	    reloadLastPage: function() {
 		    this.loader.show();
 		    this.error.hide();
-		    this.collection.reloadLastPage();
+		    if (this.context)
+		        this.collection.reloadLastPage();
 	    },
 
 	    checkScroll: function() {
@@ -887,8 +900,8 @@
 
             if (contentOffset + contentHeight - scrollTop - pageHeight < triggerPoint) {
 	            if (!this.search ||!this.searchCollection.loading)
-                    if (this.collection.loadMore()) {
-	                    this.loader.show()
+                    if (this.context && this.collection.loadMore()) {
+	                    this.loader.show();
 	                    this.error.hide();
                     }
 	        }
@@ -897,7 +910,6 @@
         appendItem: function(item) {
 	        if (this.search) {
 		        var match = this.searchCollection.checkMatch(item.get('id'));
-		        // console.log('checking ' + item.get('id') + ': ' + (match || 'false'));
 		        if (match) item = match;
 	        }
             var itemView = new this.itemView({
