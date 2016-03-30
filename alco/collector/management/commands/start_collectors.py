@@ -66,11 +66,13 @@ class Command(BaseCommand):
         n = 0
         self.started = True
         for index in indices:
-            c = Collector(index)
-            p = Process(target=c)
-            p.start()
-            logger.info("Indexer for %s started pid=%s" % (index.name, p.pid))
-            self.processes[n] = (p, index)
+            for i in range(index.num_processes):
+                c = Collector(index)
+                p = Process(target=c)
+                p.start()
+                logger.info("Indexer for %s#%s started pid=%s" %
+                            (index.name, i, p.pid))
+                self.processes[n] = (p, index)
             n += 1
         signal.signal(signal.SIGINT, self.handle_sigint)
 
