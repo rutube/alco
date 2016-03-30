@@ -14,6 +14,7 @@ class LoggerIndex(models.Model):
     queue_name = models.CharField(max_length=30, default='logstash')
     routing_key = models.TextField(default='logstash')
     durable = models.BooleanField(default=False, blank=True)
+    num_processes = models.IntegerField(default=1)
 
     @property
     def index_names(self):
