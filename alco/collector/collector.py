@@ -154,8 +154,11 @@ class Collector(object):
         seen = set()
         pkeys = self.get_primary_keys(messages)
 
-        query = "REPLACE INTO %s (id, js, logline, %s) VALUES " % (
-            name, ', '.join(indexed))
+        if indexed:
+            query = "REPLACE INTO %s (id, js, logline, %s) VALUES " % (
+                name, ', '.join(indexed))
+        else:
+            query = "REPLACE INTO %s (id, js, logline) VALUES " % name
         sql_col_count = len(indexed) + 3 # + jd, js, logline
         values_stub = "(%s)" % ", ".join(["%s"] * sql_col_count)
 
