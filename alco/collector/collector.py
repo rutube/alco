@@ -145,16 +145,17 @@ class Collector(object):
         all_columns = list(self.index.loggercolumn_set.all())
         included_columns = [c for c in all_columns if not c.excluded]
         filtered_columns = [c for c in included_columns if c.filtered]
-        indexed_columns = [c for c in all_columns if c.indexed and not c.excluded]
+        indexed_columns = [c for c in included_columns if c.indexed]
 
         included = [c.name for c in included_columns]
         filtered = [c.name for c in filtered_columns]
+        indexed = [c.name for c in indexed_columns]
         seen = set()
         pkeys = self.get_primary_keys(messages)
 
         query = "REPLACE INTO %s (id, js, logline, %s) VALUES " % (
-            name, ', '.join(c.name for c in indexed_columns))
-        sql_col_count = len(indexed_columns) + 3 # + jd, js, logline
+            name, ', '.join(indexed))
+        sql_col_count = len(indexed) + 3 # + jd, js, logline
         values_stub = "(%s)" % ", ".join(["%s"] * sql_col_count)
 
         for pk, data in zip(pkeys, messages):
@@ -162,8 +163,9 @@ class Collector(object):
             # values for caching in redis
             self.process_js_columns(data, columns, included, seen)
 
-            data['js'] = json.dumps(data['data'])
-            values = [data['data'][c.name] for c in indexed_columns]
+            js = data['data']
+            data['js'] = json.dumps(js)
+            values = [js[c] for c in indexed]
             rows.append(values_stub)
             args.extend((pk, data['js'], data['message']))
             args.extend(values)
