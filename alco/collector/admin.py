@@ -12,7 +12,8 @@ class LoggerIndexAdmin(admin.ModelAdmin):
 
 class LoggerColumnAdmin(admin.ModelAdmin):
     massadmin_exclude = ('index', 'name',)
-    list_display = ('name', 'index_name', 'filtered', 'display', 'excluded')
+    list_display = ('name', 'index_name', 'filtered', 'display', 'context',
+                    'excluded', 'indexed')
     list_filter = ('index',)
 
     def index_name(self, obj):

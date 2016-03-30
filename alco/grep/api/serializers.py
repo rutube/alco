@@ -13,6 +13,7 @@ from alco.grep.api.fields import JSONSerializerField
 mapping = copy(ModelSerializer.serializer_field_mapping)
 mapping[SphinxDateTimeField] = DateTimeField
 
+
 class LogBaseSerializer(ModelSerializer):
 
     js = JSONSerializerField()

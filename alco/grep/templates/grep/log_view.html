@@ -67,14 +67,14 @@
                 {% if not c.context %}
 
                     {% if c.name == 'host' %}
-                        <span data-field="host" data-value="<%- host %>" title="<%= host %>" class="column column-toggle column-host"
+                        <span data-field="host" data-value="<%- js['host'] %>" title="<%= js['host'] %>" class="column column-toggle column-host"
                                 <% if (columns && !_.contains(columns, '{{ c.name }}')) { %> style="display: none;"<% } %>
                                 > <%- shortHost %> </span>
                     {% else %}
-                        <span data-field="{{ c.name }}" data-value="<%-{{ c.name }}%>"
+                        <span data-field="{{ c.name }}" data-value="<%-js['{{ c.name }}']%>"
                               title="{{ c.name }}" class="column column-toggle column-{{ c.name }}"
                                 <% if (columns && !_.contains(columns, '{{ c.name }}')) { %> style="display: none;"<% } %>
-                                > <%- {{ c.name }} %> </span>
+                                > <%- js['{{ c.name }}'] %> </span>
                     {% endif %}
                 {% endif %}
             {% endfor %}
