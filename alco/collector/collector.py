@@ -139,31 +139,39 @@ class Collector(object):
         columns = defaultdict(set)
         suffix = self.current_date.strftime("%Y%m%d")
         name = "%s_%s" % (self.index.name, suffix)
-        query = "REPLACE INTO %s (id, js, logline) VALUES " % name
         rows = []
         args = []
         # all defined columns
         all_columns = list(self.index.loggercolumn_set.all())
-        indexed_columns = [c for c in all_columns if not c.excluded]
-        filtered_columns = [c for c in indexed_columns if c.filtered]
+        included_columns = [c for c in all_columns if not c.excluded]
+        filtered_columns = [c for c in included_columns if c.filtered]
+        indexed_columns = [c for c in all_columns if c.indexed and not c.excluded]
 
-        indexed = [c.name for c in indexed_columns]
+        included = [c.name for c in included_columns]
         filtered = [c.name for c in filtered_columns]
         seen = set()
         pkeys = self.get_primary_keys(messages)
+
+        query = "REPLACE INTO %s (id, js, logline, %s) VALUES " % (
+            name, ', '.join(c.name for c in indexed_columns))
+        sql_col_count = len(indexed_columns) + 3 # + jd, js, logline
+        values_stub = "(%s)" % ", ".join(["%s"] * sql_col_count)
+
         for pk, data in zip(pkeys, messages):
             # saving seen columns to LoggerColumn model, collecting unique
             # values for caching in redis
-            self.process_js_columns(data, columns, indexed, seen)
+            self.process_js_columns(data, columns, included, seen)
+
             data['js'] = json.dumps(data['data'])
-            rows.append("(%s, %s, %s)")
-            args.extend((pk, data['js'],
-                         data['message']))
+            values = [data['data'][c.name] for c in indexed_columns]
+            rows.append(values_stub)
+            args.extend((pk, data['js'], data['message']))
+            args.extend(values)
         query += ','.join(rows)
 
         self.logger.debug("Check for new columns")
 
-        new_values = seen - set(indexed)
+        new_values = seen - set(included)
 
         self.logger.debug("Saving values for filtered columns")
         for column in filtered:
@@ -191,7 +199,7 @@ class Collector(object):
                 break
 
     @staticmethod
-    def process_js_columns(data, columns, indexed, seen):
+    def process_js_columns(data, columns, included, seen):
         for key, value in data['data'].items():
             if key in ('pk', 'id', 'ts', 'ms', 'seq'):
                 # reserved by Django and ALCO
@@ -199,7 +207,7 @@ class Collector(object):
                 continue
             # save seen columns set
             seen.add(key)
-            if key not in indexed:
+            if key not in included:
                 # discard fields excluded from indexing
                 data['data'].pop(key)
                 continue

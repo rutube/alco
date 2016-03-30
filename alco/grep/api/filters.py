@@ -2,7 +2,6 @@
 
 from collections import OrderedDict
 
-from django.utils import six
 from rest_framework.filters import BaseFilterBackend
 from rest_framework.settings import api_settings
 # noinspection PyPackageRequirements
@@ -12,6 +11,15 @@ from sphinxsearch.utils import sphinx_escape
 class SphinxSearchFilter(BaseFilterBackend):
     # The URL query parameter used for the search.
     search_param = api_settings.SEARCH_PARAM
+
+    @staticmethod
+    def get_search_fields(request, view):
+        search_fields = getattr(view, 'get_search_fields', None)
+        if callable(search_fields):
+            search_fields = search_fields(request)
+        else:
+            search_fields = getattr(view, 'search_fields', None)
+        return search_fields
 
     def get_search_terms(self, request, escape=True):
         """
@@ -26,30 +34,33 @@ class SphinxSearchFilter(BaseFilterBackend):
         return params.replace(',', ' ').split()
 
     @staticmethod
-    def construct_search(field_name):
-        return '@%s ("%%s")' % field_name
+    def get_match_terms(request, search_fields):
+        result = {}
+        for key in search_fields:
+            value = request.query_params.get(key + '__in')
+            if value is None:
+                value = request.query_params.get(key)
+                if value is None:
+                    continue
+            result[key] = value.split(',')
+        return result
 
     def filter_queryset(self, request, queryset, view):
-        search_fields = getattr(view, 'search_fields', None)
-
-        if not search_fields:
-            return queryset
-
+        search_fields = self.get_search_fields(request, view)
         search_terms = self.get_search_terms(request)
-        if not search_terms:
-            return queryset
+        if search_terms:
+            queryset = queryset.match(logline='"%s"' % ' '.join(search_terms))
 
-        orm_lookups = [self.construct_search(six.text_type(search_field))
-                       for search_field in search_fields]
+        match_terms = self.get_match_terms(request, search_fields)
+        for field, values in match_terms.items():
+            if len(values) == 1:
+                queryset.filter(**{field: values[0]})
+            else:
+                queryset.filter(**{"%s__in" % field: values})
 
-        search_query = ' & '.join(search_terms)
-        match_expression = '|'.join(lookup % search_query
-                                    for lookup in orm_lookups)
-        queryset = queryset.match(match_expression)
         select = dict(logline_snippet="SNIPPET(logline, %s, 'limit=1000000')")
         params = [' '.join(self.get_search_terms(request, escape=False))]
         return queryset.extra(select=select, select_params=params)
-        # FIXME: return qs.options(before_match='<ins>', after_match='</ins>')
 
 
 class JSONFieldFilter(BaseFilterBackend):

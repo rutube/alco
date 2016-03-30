@@ -4,6 +4,7 @@
 import datetime
 from dateutil import rrule
 from django.db import models
+from django.utils.functional import cached_property
 from django.utils.timezone import localtime, now
 
 
@@ -31,19 +32,24 @@ class LoggerIndex(models.Model):
             until=midnight)
         return list(dates)
 
-    @property
+    @cached_property
     def field_names(self):
         return list(self.loggercolumn_set.values_list('name', flat=True))
 
-    @property
+    @cached_property
     def filtered_fields(self):
         return list(self.loggercolumn_set.filter(
             filtered=True).values_list('name', flat=True))
 
-    @property
+    @cached_property
     def visible_fields(self):
         return list(self.loggercolumn_set.filter(
             display=True).values_list('name', flat=True))
+
+    @cached_property
+    def indexed_fields(self):
+        return list(self.loggercolumn_set.filter(
+            indexed=True).values_list('name', flat=True))
 
     def __str__(self):
         return self.name
@@ -57,6 +63,7 @@ class LoggerColumn(models.Model):
     display = models.BooleanField(default=True)
     excluded = models.BooleanField(default=False)
     context = models.BooleanField(default=False)
+    indexed = models.BooleanField(default=False)
 
     def __str__(self):
         return '%s(%s)' % (self.name, self.index)

@@ -32,7 +32,6 @@ class GrepView(ListAPIView):
     filter_backends = (rf_filters.DjangoFilterBackend,
                        filters.SphinxSearchFilter,
                        filters.JSONFieldFilter)
-    search_fields = ('logline',)
 
     pagination_class = CursorLogPaginator
 
@@ -66,9 +65,11 @@ class GrepView(ListAPIView):
     def get_serializer_class(self):
         class Meta:
             model = self.log_model
+            fields = ('id', 'datetime', 'logline', 'logline_snippet', 'js')
 
         serializer_class = type('LogSerializer', (LogBaseSerializer,),
                                 {'Meta': Meta})
+
         return serializer_class
 
     def get_queryset(self):
@@ -77,7 +78,16 @@ class GrepView(ListAPIView):
         return self.log_model.objects.options(max_matches=page * per_page)
 
     def get_json_fields(self, request):
-        fields = self.index.visible_fields
+        fields = set(self.index.visible_fields) - set(self.index.indexed_fields)
+        result = []
+        for key, value in request.GET.items():
+            field = key.split('__')[0]
+            if field in fields:
+                result.append(field)
+        return result
+
+    def get_search_fields(self, request):
+        fields = set(self.index.visible_fields) & set(self.index.indexed_fields)
         result = []
         for key, value in request.GET.items():
             field = key.split('__')[0]

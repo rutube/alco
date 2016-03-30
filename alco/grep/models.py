@@ -6,7 +6,7 @@ from datetime import datetime
 from django.db import models
 from jsonfield import JSONField
 
-from sphinxsearch.models import SphinxModel, SphinxDateTimeField
+from sphinxsearch.models import SphinxModel, SphinxField
 from alco.collector.models import LoggerIndex, LoggerColumn
 
 
@@ -51,6 +51,10 @@ def create_char_field(c):
     return models.CharField(max_length=255, db_column='js.%s' % c)
 
 
+def create_sphinx_field(c):
+    return SphinxField(max_length=255, db_column=c)
+
+
 def create_index_model(index, distr=None):
     model_name = str("%sLog" % index.name.title())
     if distr:
@@ -61,10 +65,18 @@ def create_index_model(index, distr=None):
     class Meta:
         db_table = table
 
-    columns = index.loggercolumn_set.values_list('name', flat=True)
+    fields = {}
 
-    fields = {c: create_char_field(c) for c in columns if c not in ('pk', 'id')}
+    for column in index.loggercolumn_set.all():
+        if column.name in ('pk', 'id'):
+            continue
+        if column.indexed:
+            fields[column.name] = create_sphinx_field(column.name)
+        else:
+            fields[column.name] = create_char_field(column.name)
+
     fields.update({'Meta': Meta, '__module__': __name__})
+
     Log = type(model_name, (LogBase,), fields)
     return Log
 
