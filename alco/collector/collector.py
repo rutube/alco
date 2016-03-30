@@ -135,7 +135,8 @@ class Collector(object):
         messages, self.messages = self.messages, []
         if not messages:
             return
-        self.logger.info("Saving %s events" % len(messages))
+        message_count = len(messages)
+        self.logger.info("Saving %s events" % message_count)
         columns = defaultdict(set)
         suffix = self.current_date.strftime("%Y%m%d")
         name = "%s_%s" % (self.index.name, suffix)
@@ -166,10 +167,9 @@ class Collector(object):
             js = data['data']
             data['js'] = json.dumps(js)
             values = [js[c] for c in indexed]
-            rows.append(values_stub)
             args.extend((pk, data['js'], data['message']))
             args.extend(values)
-        query += ','.join(rows)
+        query += ','.join([values_stub] * message_count)
 
         self.logger.debug("Check for new columns")
 
