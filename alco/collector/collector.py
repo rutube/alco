@@ -12,8 +12,7 @@ from logging import getLogger
 
 import dateutil.parser
 from django.core.signals import request_started, request_finished
-from django.db import connections, DatabaseError
-from django.db.utils import ProgrammingError
+from django.db import connections, DatabaseError, ProgrammingError
 from django.utils import six
 import redis
 from amqp import Connection
