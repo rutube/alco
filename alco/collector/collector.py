@@ -12,7 +12,7 @@ from logging import getLogger
 
 import dateutil.parser
 from django.core.signals import request_started, request_finished
-from django.db import connections, DatabaseError
+from django.db import connections, DatabaseError, ProgrammingError
 from django.utils import six
 import redis
 from amqp import Connection
@@ -39,6 +39,7 @@ class Collector(object):
         self.cancelled = True
 
     def connect(self):
+        connections['default'].close()
         rabbitmq = ALCO_SETTINGS['RABBITMQ']
         self.amqp = Connection(**rabbitmq)
         self.redis = redis.Redis(**ALCO_SETTINGS['REDIS'])
@@ -128,6 +129,9 @@ class Collector(object):
         try:
             request_started.send(None, environ=None)
             self._push_messages()
+        except Exception as e:
+            self.logger.exception(e)
+            raise
         finally:
             request_finished.send(None)
 
@@ -198,8 +202,11 @@ class Collector(object):
                 c.execute(query, args)
                 self.logger.debug("%s rows inserted" % c.rowcount)
                 c.close()
-            except DatabaseError:
-                self.logger.exception("Can't insert values to index")
+            except ProgrammingError:
+                self.logger.exception(
+                    "Can't insert values to index: %s" % query)
+            except DatabaseError as e:
+                self.logger.exception("Can't insert values to index: %s" % e)
             else:
                 break
 
