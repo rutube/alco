@@ -152,6 +152,7 @@ class Collector(object):
         filtered_columns = [c for c in included_columns if c.filtered]
         indexed_columns = [c for c in included_columns if c.indexed]
 
+        existing = [c.name for c in all_columns]
         included = [c.name for c in included_columns]
         filtered = [c.name for c in filtered_columns]
         indexed = [c.name for c in indexed_columns]
@@ -180,7 +181,7 @@ class Collector(object):
 
         self.logger.debug("Check for new columns")
 
-        new_values = seen - set(included)
+        new_values = seen - set(existing)
 
         self.logger.debug("Saving values for filtered columns")
         for column in filtered:
