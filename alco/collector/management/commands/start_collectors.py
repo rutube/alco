@@ -106,7 +106,7 @@ class Command(BaseCommand):
                     self.processes[n] = (p, index)
                 elif p.exitcode != 0:
                     logger.warning("Process %s exited with return code %s while"
-                                   "terminating" % (p.pid, p.exitcode))
+                                   " terminating" % (p.pid, p.exitcode))
                     p.join()
                     del self.processes[n]
                 else:
