@@ -56,6 +56,8 @@ class LoggerIndex(models.Model):
 
 
 class LoggerColumn(models.Model):
+    class Meta:
+        unique_together = ('index', 'name')
 
     index = models.ForeignKey(LoggerIndex)
     name = models.CharField(max_length=100)
