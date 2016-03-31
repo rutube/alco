@@ -46,8 +46,18 @@ class Command(BaseCommand):
         parser.add_argument(
             '--pidfile', action='store', dest='pidfile',
             default="collector.pid", help="pidfile location")
+        parser.add_argument(
+            '--index', action='store', dest='index',
+            default=None, help='index id'
+        )
 
     def handle(self, *args, **options):
+        if options['index']:
+            index = LoggerIndex.objects.get(id=int(options['index']))
+            c = Collector(index)
+            c()
+            return
+
         if not options['daemon']:
             return self.start_worker_pool()
 
