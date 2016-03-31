@@ -173,7 +173,7 @@ class Collector(object):
 
             js = data['data']
             data['js'] = json.dumps(js)
-            values = [js[c] for c in indexed]
+            values = [js.get(c) or '' for c in indexed]
             args.extend((pk, data['js'], data['message']))
             args.extend(values)
         query += ','.join([values_stub] * message_count)
