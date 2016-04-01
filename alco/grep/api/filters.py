@@ -54,10 +54,10 @@ class SphinxSearchFilter(BaseFilterBackend):
         match_terms = self.get_match_terms(request, search_fields)
         for field, values in match_terms.items():
             if len(values) == 1:
-                queryset.filter(**{field: values[0]})
+                queryset = queryset.filter(**{field: values[0]})
             else:
                 values = '|'.join('"%s"' % sphinx_escape(v) for v in values)
-                queryset.match(**{"%s" % field: values})
+                queryset = queryset.match(**{"%s" % field: values})
 
         select = dict(logline_snippet="SNIPPET(logline, %s, 'limit=1000000')")
         params = [' '.join(self.get_search_terms(request, escape=False))]
