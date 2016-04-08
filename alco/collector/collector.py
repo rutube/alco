@@ -239,13 +239,15 @@ class Collector(object):
 
     def save_column_values(self, columns):
         self.logger.debug("Saving values for filtered columns")
+        ts = time.time()
         for column in self.filtered:
             values = columns.get(column)
             if not values:
                 continue
             key = keys.KEY_COLUMN_VALUES.format(index=self.index.name,
                                                 column=column)
-            self.redis.sadd(key, *values)
+            values = {v: ts for v in values}
+            self.redis.zadd(key, **values)
 
     def prepare_query(self, name):
         if self.indexed:
