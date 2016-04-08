@@ -3,6 +3,7 @@
 # $Id: $
 from copy import copy
 from datetime import datetime, timedelta
+import time
 
 from django.http import HttpResponseRedirect
 # noinspection PyUnresolvedReferences
@@ -42,6 +43,7 @@ class GrepView(DetailView):
         obj = self.get_object(self.get_queryset())
         filters = []
         columns = []
+        ts = time.mktime(obj.index_dates[0].timetuple())
         for f in obj.loggercolumn_set.order_by('name'):
             if f.display:
                 columns.append(f)
@@ -51,7 +53,7 @@ class GrepView(DetailView):
                     'field': f.name,
                     'heading_id': 'heading-%s' % f.name,
                     'collapse_id': 'collapse-%s' % f.name,
-                    'items': self.get_field_values(obj.name, f.name)
+                    'items': self.get_field_values(obj, f.name, ts)
                 })
         cd['filters'] = filters
         cd['columns'] = columns
@@ -59,9 +61,9 @@ class GrepView(DetailView):
         return cd
 
     @staticmethod
-    def get_field_values(index, column):
-        key = keys.KEY_COLUMN_VALUES.format(index=index, column=column)
-        return sorted(client.smembers(key))
+    def get_field_values(index, column, ts):
+        key = keys.KEY_COLUMN_VALUES.format(index=index.name, column=column)
+        return sorted(client.zrangebyscore(key, ts, '+inf'))
 
 
 class ShortcutView(SingleObjectMixin, RedirectView):
