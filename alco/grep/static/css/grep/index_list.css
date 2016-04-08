@@ -1,0 +1,10 @@
+.inline-headers h2, .inline-headers h4 {
+  display: inline-block;
+  vertical-align: baseline;
+}
+
+h2.panel-title a {
+    font-size: 26pt;
+    font-weight: normal;
+    vertical-align: middle;
+}

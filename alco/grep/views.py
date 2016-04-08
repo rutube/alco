@@ -9,7 +9,7 @@ from django.http import HttpResponseRedirect
 # noinspection PyUnresolvedReferences
 from django.utils.six.moves.urllib import parse
 from django.core.urlresolvers import reverse
-from django.views.generic import DetailView, RedirectView
+from django.views.generic import DetailView, RedirectView, ListView
 from django.views.generic.detail import SingleObjectMixin
 import redis
 
@@ -88,3 +88,9 @@ class ShortcutView(SingleObjectMixin, RedirectView):
         parts = list(url)
         parts[4] = parse.urlencode(query_params)
         return parse.urlunparse(parts)
+
+
+class IndexListView(ListView):
+    model = LoggerIndex
+
+    template_name = 'grep/loggerindex_list.html'

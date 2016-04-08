@@ -1,0 +1,33 @@
+{% extends 'grep/base.html' %}
+{% load staticfiles %}
+{% block title %}ALCO{% endblock %}
+{% block extrahead %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/grep/index_list.css' %}" />
+{% endblock %}
+{% block content %}
+    <div class="container">
+        <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+            {% for index in object_list %}
+              <div class="panel panel-default">
+                <div class="panel-heading inline-headers" role="tab" id="headingOne">
+                  <h2 class="panel-title">
+                    <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                      {{ index.name }}
+                    </a>
+                  </h2>
+                </div>
+                <div id="collapseOne" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne">
+                  <div class="panel-body">
+                      <ul>
+                        <li><a href="{% url 'grep_view' name=index.name %}">Current log tail</a></li>
+                          {% for shortcut in index.shortcut_set.all %}
+                        <li><a href="{% url 'shortcut_view' name=shortcut.name %}">{{ shortcut.description }}</a></li>
+                      {% endfor %}
+                      </ul>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
