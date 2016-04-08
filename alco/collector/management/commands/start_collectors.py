@@ -4,12 +4,13 @@
 import os
 import signal
 from logging import getLogger
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 from time import sleep
 
 from daemon import DaemonContext
 from daemon.pidfile import TimeoutPIDLockFile
 from django.core.management import BaseCommand
+from logutils.queue import QueueListener
 
 from alco.collector.collector import Collector
 from alco.collector.models import LoggerIndex
@@ -38,6 +39,7 @@ class Command(BaseCommand):
                                       no_color=no_color)
         self.processes = {}
         self.started = False
+        self.logging_queue = self.logging_listener = None
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -71,6 +73,7 @@ class Command(BaseCommand):
             self.start_worker_pool()
 
     def start_worker_pool(self):
+        self.start_mp_logging()
         indices = list(LoggerIndex.objects.all())
         logger.info("Starting worker pool with %s indexers" % len(indices))
         n = 0
@@ -124,7 +127,20 @@ class Command(BaseCommand):
                     p.join()
                     del self.processes[n]
 
+        self.stop_mp_logging()
+
     def handle_sigint(self, sig_num, frame):
         logger.info("Got signal %s, stopping" % sig_num)
         self.started = False
+
+    def start_mp_logging(self):
+        logger.debug("Start listening child logs")
+        self.logging_queue = Queue()
+        handlers = logger.handlers
+        self.logging_listener = QueueListener(self.logging_queue, *handlers)
+        self.logging_listener.start()
+
+    def stop_mp_logging(self):
+        logger.debug("Stop listening child logs")
+        self.logging_listener.stop()
 
