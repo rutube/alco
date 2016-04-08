@@ -83,7 +83,7 @@ class Command(BaseCommand):
                 logger.info("Indexer for %s#%s started pid=%s" %
                             (index.name, i, p.pid))
                 self.processes[n] = (p, index)
-            n += 1
+                n += 1
         signal.signal(signal.SIGINT, self.handle_sigint)
 
         while len(self.processes) > 0:
