@@ -10,6 +10,9 @@ from django.utils.timezone import localtime, now
 
 class LoggerIndex(models.Model):
 
+    class Meta:
+        ordering = ('name',)
+
     name = models.CharField(max_length=20)
     intervals = models.IntegerField(default=30)
     queue_name = models.CharField(max_length=30, default='logstash')
@@ -58,6 +61,7 @@ class LoggerIndex(models.Model):
 class LoggerColumn(models.Model):
     class Meta:
         unique_together = ('index', 'name')
+        ordering = ('name',)
 
     index = models.ForeignKey(LoggerIndex)
     name = models.CharField(max_length=100)
