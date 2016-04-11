@@ -44,6 +44,7 @@ setup(
         'django_sphinxsearch',
         'ujson',
         'librabbitmq',
+        'logutils',
     ],
     license='Beerware',
     author='tumbler',
