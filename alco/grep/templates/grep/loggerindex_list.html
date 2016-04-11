@@ -9,14 +9,14 @@
         <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
             {% for index in object_list %}
               <div class="panel panel-default">
-                <div class="panel-heading inline-headers" role="tab" id="headingOne">
+                <div class="panel-heading inline-headers" role="tab" id="heading{{ index.id }}">
                   <h2 class="panel-title">
-                    <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                    <a role="button" data-toggle="collapse" data-parent="#accordion" href="#index{{ index.id }}" aria-expanded="true" aria-controls="index{{ index.id }}">
                       {{ index.name }}
                     </a>
                   </h2>
                 </div>
-                <div id="collapseOne" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne">
+                <div id="index{{ index.id }}" class="panel-collapse collapse" role="tabpanel" aria-labelledby="heading{{ index.id }}">
                   <div class="panel-body">
                       <ul>
                         <li><a href="{% url 'grep_view' name=index.name %}">Current log tail</a></li>
