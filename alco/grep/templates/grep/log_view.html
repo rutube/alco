@@ -31,7 +31,7 @@
                             </span>
                         </div>
                         <div class="btn-group" id="filter-toggles">
-                        {% for c in columns %}
+                        {% for c in filtered_columns %}
                             {% if not c.filtered %}
                                 <button class="btn btn-xs btn-default filter-toggler" value="{{ c.name }}">{{ c.name }}</button>
                             {% endif %}
