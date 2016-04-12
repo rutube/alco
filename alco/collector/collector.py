@@ -273,10 +273,10 @@ class Collector(object):
     @staticmethod
     def process_js_columns(js, columns, included, seen):
         for key, value in list(js.items()):
-            if key in ('pk', 'id', 'ts', 'ms', 'seq'):
-                # reserved by Django and ALCO
-                js.pop(key)
-                continue
+            if key in ('pk', 'id', 'ts', 'ms', 'seq', 'model'):
+                # escape fields reserved by Django and ALCO
+                js['%s_x' % key] = js.pop(key)
+                key = '%s_x' % key
             # save seen columns set
             if key not in seen:
                 seen.add(key)
