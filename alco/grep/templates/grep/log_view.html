@@ -82,20 +82,16 @@
             <%= logline %></span>
             {% spaceless %}
             <span class="context-pills">
-                {% for c in columns %}
-                    {% if c.context %}
-                        <% if(js['{{ c.name }}']) { %>
-                        <a href="#{{ c.name }}" class="label context" data-context="{{ c.name }}">{{ c.name }}</a>
-                        <% } %>
-                    {% endif %}
+                {% for c in context_columns %}
+                    <% if(js['{{ c.name }}']) { %>
+                    <a href="#{{ c.name }}" class="label context" data-context="{{ c.name }}">{{ c.name }}</a>
+                    <% } %>
                 {% endfor %}
             </span>
 
             <div class="context-area">
-                {% for c in columns %}
-                    {% if c.context %}
-                        <pre class="context" data-context="{{ c.name }}" id="{{ c.name }}"> <%- js['{{ c.name }}'] %> </pre>
-                    {% endif %}
+                {% for c in context_columns %}
+                    <pre class="context" data-context="{{ c.name }}" id="{{ c.name }}"> <%- js['{{ c.name }}'] %> </pre>
                 {% endfor %}
             </div>
             {% endspaceless %}
