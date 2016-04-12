@@ -68,8 +68,6 @@ def create_index_model(index, distr=None):
     fields = {}
 
     for column in index.loggercolumn_set.all():
-        if column.name in ('pk', 'id'):
-            continue
         if column.indexed:
             fields[column.name] = create_sphinx_field(column.name)
         else:
