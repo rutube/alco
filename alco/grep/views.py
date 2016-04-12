@@ -61,6 +61,7 @@ class GrepView(DetailView):
         cd['filters'] = filters
         cd['columns'] = columns
         cd['context_columns'] = context_columns
+        cd['filtered_columns'] = list(set(columns) | set(context_columns))
         cd['column_names'] = [c.name for c in columns]
         return cd
 
