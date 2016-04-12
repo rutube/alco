@@ -43,10 +43,13 @@ class GrepView(DetailView):
         obj = self.get_object(self.get_queryset())
         filters = []
         columns = []
+        context_columns = []
         ts = time.mktime(obj.index_dates[0].timetuple())
         for f in obj.loggercolumn_set.order_by('name'):
             if f.display:
                 columns.append(f)
+            if f.context:
+                context_columns.append(f)
             if f.filtered:
                 filters.append({
                     'title': f.name.title(),
@@ -57,6 +60,7 @@ class GrepView(DetailView):
                 })
         cd['filters'] = filters
         cd['columns'] = columns
+        cd['context_columns'] = context_columns
         cd['column_names'] = [c.name for c in columns]
         return cd
 
