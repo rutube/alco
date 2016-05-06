@@ -235,8 +235,9 @@ class Collector(object):
             except Exception:
                 self.logger.exception("Unhandled error in insert_data")
             else:
-                break
-        return result
+                return result
+        self.logger.error("Can't insert data in 3 tries, exit process")
+        sys.exit(1)
 
     def save_new_columns(self, seen):
         self.logger.debug("Check for new columns")
