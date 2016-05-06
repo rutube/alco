@@ -1,22 +1,22 @@
 # coding: utf-8
 
 # $Id: $
+import signal
 import socket
+import sys
 import time
 import ujson as json
-import sys
-from datetime import datetime
 from collections import defaultdict
-from random import randint
+from datetime import datetime
 from logging import getLogger
+from random import randint
 from threading import Thread
 
-import signal
-
-from django.core.signals import request_started, request_finished
-from django.db import connections, DatabaseError, ProgrammingError
-from django.utils import six
 import redis
+from django.conf import settings
+from django.core.signals import request_started, request_finished
+from django.db import connections, DatabaseError, ProgrammingError, close_old_connections
+from django.utils import six
 from librabbitmq import Connection
 from pyrabbit.api import Client
 
@@ -226,7 +226,14 @@ class Collector(object):
                 self.logger.exception(
                     "Can't insert values to index: %s" % query)
             except DatabaseError as e:
-                self.logger.exception("Can't insert values to index: %s" % e)
+                self.logger.exception("Sphinx connection error: %s" % e)
+                try:
+                    close_old_connections()
+                except Exception as e:
+                    self.logger.exception("Can't reconnect: %s" % e)
+                    sys.exit(1)
+            except Exception:
+                self.logger.exception("Unhandled error in insert_data")
             else:
                 break
         return result
