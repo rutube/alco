@@ -13,7 +13,7 @@ It has very functional web interface, search cluster and a log transformation to
 
 * It's Java with well-known requirements for memory and CPUs
 * It's ElasticSearch with it's requirements for disk space
-* It's nodejs-based Logstash witch suddenly stops processing logs in some conditions.
+* It's Logstash which suddenly stops processing logs in some conditions.
 * It's Kibana with very cool RICH interface which looses on all counts to `grep` and `less` in a task of log reading and searching.
 
 Introducing ALCO
