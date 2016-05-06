@@ -16,7 +16,7 @@ import redis
 from alco.collector import keys
 from alco.collector.defaults import ALCO_SETTINGS
 from alco.collector.models import LoggerIndex
-from alco.grep.models import Shortcut
+from alco.grep.models import Shortcut, create_index_model
 
 client = redis.Redis(**ALCO_SETTINGS['REDIS'])
 
@@ -99,3 +99,14 @@ class IndexListView(ListView):
     model = LoggerIndex
 
     template_name = 'grep/loggerindex_list.html'
+
+    def get_context_data(self, **kwargs):
+        cd = super(IndexListView, self).get_context_data(**kwargs)
+        ts = datetime.now().replace(microsecond=0) - timedelta(minutes=5)
+        distr = ts.strftime('%Y%m%d')
+        for index in cd['object_list']:
+            log_model = create_index_model(index, distr=distr)
+            start_id = int(time.mktime(ts.timetuple()) * 1000000000)
+            index.last_count = log_model.objects.filter(id__gt=start_id).count()
+        return cd
+
