@@ -9,7 +9,7 @@ except ImportError:
 
 setup(
     name='alco',
-    version='2.5.0',
+    version='2.5.1',
     long_description=read_md('README.md'),
     packages=['alco',
               'alco.grep',
