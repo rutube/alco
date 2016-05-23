@@ -1,6 +1,7 @@
 # coding: utf-8
 
 # $Id: $
+import os
 import signal
 import socket
 import sys
@@ -231,13 +232,13 @@ class Collector(object):
                     close_old_connections()
                 except Exception as e:
                     self.logger.exception("Can't reconnect: %s" % e)
-                    sys.exit(1)
+                    os.kill(os.getpid(), signal.SIGKILL)
             except Exception:
                 self.logger.exception("Unhandled error in insert_data")
             else:
                 return result
         self.logger.error("Can't insert data in 3 tries, exit process")
-        sys.exit(1)
+        os.kill(os.getpid(), signal.SIGKILL)
 
     def save_new_columns(self, seen):
         self.logger.debug("Check for new columns")
